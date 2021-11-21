@@ -1,0 +1,20 @@
+version: '3.2'
+services:
+  mongo:
+    image: mongo
+    ports:
+      "27017:27017"
+    volumes:
+      - ${PWD}:/data/db
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: e34723bbd2c58a9788dd979ebc634ab23d1a61c3
+      MONGO_INITDB_ROOT_PASSWORD: 3fedd179e1057aa86def63972ce29f91ff867fd9
+  
+  python:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - mongo
+      
