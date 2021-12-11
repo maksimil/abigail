@@ -2,7 +2,7 @@ import database
 
 
 def main():
-    print("Starting")
+    print("Starting...")
 
     while True:
         pass
