@@ -12,7 +12,7 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN, parse_mode=None)  # bot's Token
 
-ID_OF_THE_TEACHER = 936467751  # id of the teacher
+ID_OF_THE_TEACHER = 526809653  # id of the teacher
 
 # message configs
 CALENDAR_BTN = "Календарь📆"
@@ -41,7 +41,7 @@ def notice_update_loop():
         all_user_id = database.get_user_list()
         count = 0
         for notice in notices:
-            send_all(all_user_id, notice.text)
+            send_all(all_user_id, notice["text"])
 
         time.sleep(10)
 

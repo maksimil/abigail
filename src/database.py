@@ -44,8 +44,8 @@ def initialize_values():
         values.delete_many({})
 
         ninit.update(vs[0])
+        del ninit["_id"]
 
-    del ninit["_id"]
     log.info(log.DB, f"Setting values to {ninit}")
 
     values.insert_one(ninit)
@@ -75,7 +75,10 @@ def get_user_list():
     """
     gets the list of all users
     """
-    return list(set(users.find()))
+    userlist = set()
+    for user in users.find():
+        userlist.add(user["uid"])
+    return list(userlist)
 
 
 def add_event(text: str, day: int):
