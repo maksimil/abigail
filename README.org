@@ -1,0 +1,21 @@
+#+TITLE: Abigail
+
+Очистка БД
+#+BEGIN_SRC bash
+python ./scripts/restart-mongod.py
+#+END_SRC
+
+Запуск БД
+#+BEGIN_SRC bash
+mongod --dbpath ./db --auth
+#+END_SRC
+
+Запуск бота
+#+BEGIN_SRC bash
+sh ./src/main.sh
+#+END_SRC
+
+Запуск mongosh
+#+BEGIN_SRC bash
+sh ./scripts/mongosh.sh
+#+END_SRC
