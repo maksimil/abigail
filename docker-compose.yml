@@ -2,27 +2,21 @@ version: '3.2'
 services:
   mongo:
     image: mongo
-    command: mongod --auth
+    command: mongod --dbpath /data/db --auth
     ports:
       - "27017:27017"
     volumes:
-      - mongodb:/data/db
+      - ./db:/data/db
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
-      MONGODB_DATA_DIR: /data/db
-  
+
   python:
     build:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     depends_on:
       - mongo
-
-volumes:
-  mongodb:
+    network_mode: "host"

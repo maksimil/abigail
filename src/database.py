@@ -7,7 +7,7 @@ MONGO_INITDB_ROOT_USERNAME = os.getenv("MONGO_INITDB_ROOT_USERNAME")
 MONGO_INITDB_ROOT_PASSWORD = os.getenv("MONGO_INITDB_ROOT_PASSWORD")
 
 
-def __init__():
+def init_db():
     global values, users, events, notices
     log.info(log.DB, "Starting the db...")
 
@@ -132,6 +132,3 @@ def get_unmarked_notices():
     notices = notices_from_period(last_update, update_timestamp)
     update_value(LAST_NOTICE_UPDATE, update_timestamp)
     return notices
-
-
-__init__()

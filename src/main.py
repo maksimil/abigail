@@ -7,10 +7,10 @@ from telebot import types
 import database
 import log
 
+# global values
 DATEFORMAT = "%d.%m (%a)"
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
-bot = telebot.TeleBot(TELEGRAM_TOKEN, parse_mode=None)  # bot's Token
 
 ID_OF_THE_TEACHER = 526809653  # id of the teacher
 
@@ -33,6 +33,11 @@ GREETING_MESSAGE = """Привет, человек👋
 
 👇Нажми кнопку \"Календарь\" и увидишь, что запланировано на ближайшее будущее"
 """
+
+database.init_db()
+
+log.info(log.BOT, "initializing the bot")
+bot = telebot.TeleBot(TELEGRAM_TOKEN, parse_mode=None)  # bot's Token
 
 
 def notice_update_loop():
@@ -188,6 +193,7 @@ CMD_MAP = {
     NOTICES_BTN: [cmd_list_notices, False],
     ADD_NOTICE: [cmd_add_notice, False],
 }
+# maks pidor
 
 
 @bot.message_handler(content_types=["text"])

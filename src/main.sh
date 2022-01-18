@@ -1,4 +1,4 @@
 #! /bin/sh
 
 . ./env.sh
-python src/main.py
+python -u src/main.py
