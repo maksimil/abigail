@@ -18,9 +18,8 @@ ID_OF_THE_TEACHER = 526809653  # id of the teacher
 CALENDAR_BTN = "Календарь📆"
 NOTICES_BTN = "Список напоминаний📃"
 ADD_EVENT_BTN = "Добавить событие✏️"
-ADD_NOTICE = "Установить напоминание⏰"
-CLEAR_EVENTS = "Очистить календарь❌"
-CLEAR_NOTICES = "Удалить все напоминания❌"
+ADD_NOTICE_BTN = "Установить напоминание⏰"
+HELP_BTN = "Справочник⚙"
 
 GREETING_MESSAGE = """Привет, человек👋
 
@@ -33,6 +32,18 @@ GREETING_MESSAGE = """Привет, человек👋
 
 👇Нажми кнопку \"Календарь\" и увидишь, что запланировано на ближайшее будущее"
 """
+
+HELP_MESSAGE = """Как пользоваться? ⚙️
+
+1)Календарь 🗓️ - показывает список дат и прикрепленных к ним событий, которые Вы уже добавили
+
+2)Список напоминаний📃 - показывает список всех уже установленных Вами напоминаний, а так же даты и время, на которые они установлены
+
+3)Добавить событие✏️ - позволяет Вам добавить событие в календарь на конкретную дату. Нажмите на кнопку, вам высветится список из предложенных 15-ти следующих дней, начиная с завтрашнего. Нажмите на одну из дат, или напишите в поле сообщения и отправьте свою дату в формате: дд.мм.гг. После вам высветится: "Напишите сообщение". Введите то, что вы хотите сообщить в поле сообщения и нажмите на синюю кнопку Отправить справа. Готово, Ваше событие в календаре
+
+4)Установить напоминание⏰ -
+
+5)Справочник⚙️ - выводит данное сообщение с объяснением, как всё работает"""
 
 database.init_db()
 
@@ -65,7 +76,7 @@ def send_all(ids, text):
             else:
                 break
         except Exception as e:
-            log.error(log.BOT, f"Error 403. Someone blocked me :(\n{str(e)}\n")
+            log.error(log.BOT, f"Error 403. {ids[i]} blocked me :(\n{str(e)}\n")
 
 
 @bot.message_handler(commands=["start"])
@@ -85,8 +96,8 @@ def start(message):
         startmenu.row(CALENDAR_BTN)
     else:
         startmenu.row(CALENDAR_BTN, NOTICES_BTN)
-        startmenu.row(ADD_EVENT_BTN, ADD_NOTICE)
-        startmenu.row(CLEAR_EVENTS, CLEAR_NOTICES)
+        startmenu.row(ADD_EVENT_BTN, ADD_NOTICE_BTN)
+        startmenu.row(HELP_BTN)
     bot.send_message(
         message.chat.id, GREETING_MESSAGE, reply_markup=startmenu,
     )
@@ -160,7 +171,11 @@ def cmd_add_notice(message):
     """
     Implementation of adding notices
     """
-    send = bot.send_message(message.chat.id, "Укажите сообщение напоминания")
+    send = bot.send_message(
+        message.chat.id,
+        "Укажите сообщение напоминания",
+        reply_markup=types.ReplyKeyboardRemove(),
+    )
     bot.register_next_step_handler(send, reminder_1)
 
 
@@ -178,6 +193,13 @@ def cmd_add_event(message):
     bot.register_next_step_handler(send, changing_our_calendar1)
 
 
+def cmd_help(message):
+    """
+    Help for the teacher
+    """
+    bot.send_message(message.chat.id, HELP_MESSAGE)
+
+
 def cmd_empty(message):
     """
     Implementation of no keyword
@@ -191,9 +213,9 @@ CMD_MAP = {
     CALENDAR_BTN: [cmd_list_events, True],
     ADD_EVENT_BTN: [cmd_add_event, False],
     NOTICES_BTN: [cmd_list_notices, False],
-    ADD_NOTICE: [cmd_add_notice, False],
+    ADD_NOTICE_BTN: [cmd_add_notice, False],
+    HELP_BTN: [cmd_help, False],
 }
-# maks pidor
 
 
 @bot.message_handler(content_types=["text"])
@@ -215,7 +237,11 @@ def text_handler(message):
 def changing_our_calendar1(message):
     global daystring
     daystring = message.text
-    send = bot.send_message(message.chat.id, "Напишите название события")
+    send = bot.send_message(
+        message.chat.id,
+        "Напишите название события",
+        reply_markup=types.ReplyKeyboardRemove(),
+    )
     bot.register_next_step_handler(send, changing_our_calendar2)
 
 
@@ -228,8 +254,8 @@ def changing_our_calendar2(message):
 
         startmenu = types.ReplyKeyboardMarkup(True, False)
         startmenu.row(CALENDAR_BTN, NOTICES_BTN)
-        startmenu.row(ADD_EVENT_BTN, ADD_NOTICE)
-        startmenu.row(CLEAR_EVENTS, CLEAR_NOTICES)
+        startmenu.row(ADD_EVENT_BTN, ADD_NOTICE_BTN)
+        startmenu.row(HELP_BTN)
 
         if daydate >= nowdate:
             database.add_event(message.text, daydate.timestamp())
@@ -251,8 +277,9 @@ def changing_our_calendar2(message):
         log.error(log.BOT, e)
         startmenu = types.ReplyKeyboardMarkup(True, False)
         startmenu.row(CALENDAR_BTN, NOTICES_BTN)
-        startmenu.row(ADD_EVENT_BTN, ADD_NOTICE)
-        startmenu.row(CLEAR_EVENTS, CLEAR_NOTICES)
+        startmenu.row(ADD_EVENT_BTN, ADD_NOTICE_BTN)
+        startmenu.row(HELP_BTN)
+
         bot.send_message(
             message.chat.id,
             "Неправильно заполнена форма :(\nПопробуйте ещё раз.",
@@ -307,8 +334,8 @@ def reminder_3(message):
 
         startmenu = types.ReplyKeyboardMarkup(True, False)
         startmenu.row(CALENDAR_BTN, NOTICES_BTN)
-        startmenu.row(ADD_EVENT_BTN, ADD_NOTICE)
-        startmenu.row(CLEAR_EVENTS, CLEAR_NOTICES)
+        startmenu.row(ADD_EVENT_BTN, ADD_NOTICE_BTN)
+        startmenu.row(HELP_BTN)
 
         bot.send_message(
             ID_OF_THE_TEACHER,
@@ -320,8 +347,8 @@ def reminder_3(message):
         log.error(log.BOT, e)
         startmenu = types.ReplyKeyboardMarkup(True, False)
         startmenu.row(CALENDAR_BTN, NOTICES_BTN)
-        startmenu.row(ADD_EVENT_BTN, ADD_NOTICE)
-        startmenu.row(CLEAR_EVENTS, CLEAR_NOTICES)
+        startmenu.row(ADD_EVENT_BTN, ADD_NOTICE_BTN)
+        startmenu.row(HELP_BTN)
 
         bot.send_message(
             message.chat.id,
