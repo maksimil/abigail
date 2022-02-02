@@ -3,59 +3,61 @@ import pymongo
 import log
 import datetime
 
-MONGO_INITDB_ROOT_USERNAME = os.getenv("MONGO_INITDB_ROOT_USERNAME")
-MONGO_INITDB_ROOT_PASSWORD = os.getenv("MONGO_INITDB_ROOT_PASSWORD")
+logger = log.Logger(["DATABASE", log.FGREEN])
+
+INITIAL_VALUES = {}
 
 
 def init_db():
-    global values, users, events, notices
-    log.info(log.DB, "Starting the db...")
+    """
+    Initializes the connection to database
+    """
+    global values, users, events
+
+    # Connection to the database
+    logger.info("Initializing the connection")
+    root_username = os.getenv("MONGO_INITDB_ROOT_USERNAME")
+    root_password = os.getenv("MONGO_INITDB_ROOT_PASSWORD")
+    port = os.getenv("MONGO_PORT")
+
+    logger.info("Starting the db...")
 
     client = pymongo.MongoClient(
         host="127.0.0.1",
-        port=27017,
-        username=MONGO_INITDB_ROOT_USERNAME,
-        password=MONGO_INITDB_ROOT_PASSWORD,
+        port=int(port),
+        username=root_username,
+        password=root_password,
     )
 
     abigail = client["abigail"]
     users = abigail["users"]
     events = abigail["events"]
-    notices = abigail["notices"]
     values = abigail["values"]
 
-    initialize_values()
-
-    log.info(log.DB, "Started the db")
-
-
-LAST_NOTICE_UPDATE = "last_notice_update"
-INITIAL_VALUES = {LAST_NOTICE_UPDATE: 0}
-
-
-def initialize_values():
-    log.info(log.DB, "Initializing values")
+    # Initializing the values
+    logger.info("Initializing values")
 
     ninit = INITIAL_VALUES.copy()
 
     vs = list(values.find({}))
     if len(vs) != 0:
-        log.info(log.DB, f"Removing previous values")
+        logger.info("Removing previous values")
         values.delete_many({})
 
         ninit.update(vs[0])
         del ninit["_id"]
 
-    log.info(log.DB, f"Setting values to {ninit}")
+    logger.info(f"Setting values to {ninit}")
 
     values.insert_one(ninit)
-    log.info(log.DB, "Initialized values")
+
+    logger.info("Started the db")
 
 
 def add_user(uid: int, ist: bool):
     """
-    adds user to the database
-    doesn't add them if they are already in the db
+    Adds user to the database
+    Doesn't add them if they are already in the db
     """
     if users.find_one({"uid": uid}) is None:
         users.insert_one({"uid": uid, "is_teacher": ist})
@@ -63,7 +65,7 @@ def add_user(uid: int, ist: bool):
 
 def is_teacher(uid: int) -> bool:
     """
-    checks if a user is a teacher
+    Checks if a user is a teacher
     """
     user = users.find_one({"uid": uid})
     if user is None:
@@ -73,7 +75,7 @@ def is_teacher(uid: int) -> bool:
 
 def get_user_list():
     """
-    gets the list of all users
+    Gets the list of all users
     """
     userlist = set()
     for user in users.find():
@@ -84,51 +86,38 @@ def get_user_list():
 def add_event(text: str, day: int):
     """
     Adds event
-    Timestamp is in unix seconds
     """
     events.insert_one({"text": text, "timestamp": day})
 
 
-def add_notice(text: str, timestamp: int):
-    """
-    Adds notice
-    Timestamp is in unix seconds
-    """
-    notices.insert_one({"text": text, "timestamp": timestamp})
-
-
 def events_from_period(start: int, end: int):
+    """
+    Gets every event in [`start`;`end`) period
+    """
     return list(events.find({"timestamp": {"$gte": start, "$lt": end}}))
 
 
 def get_events_since(start: int):
+    """
+    Gets every event since `start` timestamp
+    """
     return list(events.find({"timestamp": {"$gte": start}}))
 
 
-def notices_from_period(start: int, end: int):
-    return list(notices.find({"timestamp": {"$gte": start, "$lt": end}}))
-
-
-def get_notices_since(start: int):
-    return list(notices.find({"timestamp": {"$gte": start}}))
-
-
 def get_value(name):
+    """
+    Gets global value `name`
+    """
     vs = values.find_one({})
     if vs.get(name) is None:
-        log.error(log.DB, "value {name} not found")
+        logger.error("value {name} not found")
     else:
         return vs[name]
 
 
 def update_value(name, value):
-    log.info(log.DB, f"Updated {name} to {value}")
+    """
+    Updates global value `name` to `value`
+    """
+    logger.info(f"Updated {name} to {value}")
     values.update_one({}, {"$set": {name: value}})
-
-
-def get_unmarked_notices():
-    last_update = get_value(LAST_NOTICE_UPDATE)
-    update_timestamp = datetime.datetime.now().timestamp()
-    notices = notices_from_period(last_update, update_timestamp)
-    update_value(LAST_NOTICE_UPDATE, update_timestamp)
-    return notices

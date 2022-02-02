@@ -1,4 +1,4 @@
 #! /bin/sh
 
 . ./env.sh
-mongosh admin ./scripts/mongo-init.js --quiet
+mongosh mongodb://127.0.1:27077/admin ./scripts/mongo-init.js --quiet

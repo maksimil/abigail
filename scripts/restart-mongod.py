@@ -9,7 +9,9 @@ shutil.rmtree("./db")
 os.mkdir("./db")
 
 process = subprocess.Popen(
-    ["mongod", "--dbpath", "./db"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+    ["mongod", "--dbpath", "./db", "--port", "27077"],
+    stdout=subprocess.PIPE,
+    stderr=subprocess.STDOUT,
 )
 
 while process.poll() is None:

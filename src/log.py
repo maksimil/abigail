@@ -1,36 +1,82 @@
-INFO = ["[INFO]", "34"]
-ERROR = ["[ERROR]", "31"]
+"""
+Logger module
+"""
+import datetime
 
-BOT = ["[BOT]", "34"]
-MESSAGE = ["[MESSAGE]", "32"]
+# foreground colors
+FBLACK = "30"
+FRED = "31"
+FGREEN = "32"
+FYELLOW = "33"
+FBLUE = "34"
+FMAGENTA = "35"
+FCYAN = "36"
+FWHITE = "37"
 
-DB = ["[DB]", "32"]
+# background colors
+BBLACK = "40"
+BRED = "41"
+BGREEN = "42"
+BYELLOW = "43"
+BBLUE = "44"
+BMAGENTA = "45"
+BCYAN = "46"
+BWHITE = "47"
+
+# tags
+INFO = ["INFO", FBLUE]
+WARN = ["WARN", FYELLOW]
+ERROR = ["ERROR", FRED]
 
 
-def logmessage(tags, message):
+def _logmessage(tags, message):
+    message = str(message)
     tag = ""
     for (tagname, color) in tags:
-        tag += f"\x1b[{color}m{tagname}\x1b[0m"
-    return tag + message
+        tag += f"\x1b[{color}m[{tagname}]\x1b[0m"
+    timestamp = datetime.datetime.now().isoformat(" ", timespec="seconds")
+    return f"[{timestamp}]{tag}{_inline_text(message)}"
 
 
-def log(tags, message):
+def _log(tags, message):
+    print(_logmessage(tags, message))
+
+
+def _inline_text(text):
     """
-    general logger funtion
+    Inlines text for terminal output
     """
-    print(logmessage(tags, message))
+    return f"\x1b[{BWHITE};{FBLACK}m\\n\x1b[0m".join(text.splitlines())
 
 
-def bot_message(message):
+class Logger:
     """
-    logs the telebot message object
+    Logger class for module prefix
     """
-    log([BOT, MESSAGE], f"{message.chat.username}[{message.chat.id}]> {message.text}")
 
+    def __init__(self, mod):
+        self._mod = mod
 
-def error(tag, message):
-    log([tag, ERROR], message)
+    def info(self, message):
+        """
+        Logs with [INFO]
+        """
+        self.log([INFO], message)
 
+    def error(self, message):
+        """
+        Logs with [ERROR]
+        """
+        self.log([ERROR], message)
 
-def info(tag, message):
-    log([tag, INFO], message)
+    def warn(self, message):
+        """
+        Logs with [WARN]
+        """
+        self.log([WARN], message)
+
+    def log(self, tags, message):
+        """
+        Logs with [tag]
+        """
+        _log([self._mod, *tags], message)
