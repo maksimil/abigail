@@ -1,6 +1,21 @@
 #+TITLE: Abigail
 
+* До работы с ботом
+
+Для запуска бота в папке должен быть файл ~env.sh~, пример такого файла:
+
+#+BEGIN_SRC shell
+export MONGO_INITDB_ROOT_USERNAME="34723bbd2c5ebc634ab23d1a61c3"
+export MONGO_INITDB_ROOT_PASSWORD="fedd179e10577fd9"
+export TELEGRAM_TOKEN="5293900qxy6b-uYtUc"
+export MONGO_PORT="27807"
+export PROJECTNAME="abigail"
+#+END_SRC
+
+* Команды без ~docker~
+
 Очистка БД
+
 #+BEGIN_SRC bash
 python ./scripts/restart-mongod.py
 #+END_SRC
@@ -20,7 +35,10 @@ sh ./src/main.sh
 sh ./scripts/mongosh.sh
 #+END_SRC
 
+* Команды ~docker~
+
 Запуск c помощью docker-compose (запускает БД и бота в фоне, выдаёт stdout бота на выводе, для остановки ~docker-compose down~)
+
 #+BEGIN_SRC bash
 sh ./scripts/docker.sh
 #+END_SRC

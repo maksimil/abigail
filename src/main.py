@@ -5,7 +5,7 @@ import traceback
 import os
 import re
 import datetime
-from bot import ARGS, FUNC, HELP, KB, MESSAGE, PARSER, gen_menu, empty_menu
+from bot import ARGS, FUNC, KB, MESSAGE, PARSER, Keyboard
 import bot
 import database
 import log
@@ -14,25 +14,22 @@ import log
 logger = log.Logger(["MAINBOT", log.FYELLOW])
 
 # message configs
-CALENDAR_BTN = "Календарь📆"
-NOTICES_BTN = "Список напоминаний📃"
-ADD_EVENT_BTN = "Добавить событие✏️"
-ADD_NOTICE_BTN = "Установить напоминание⏰"
-HELP_BTN = "Справочник⚙"
+GREETING_MESSAGE = """Привет👋
 
-GREETING_MESSAGE = """Привет, человек👋
-
-Через меня ты будешь получать следующую полезную инфу:
+Через меня вы будетe получать следующую полезную информацию:
 📝Домашние задания
 🕘Общие мероприятия (школьные концерты, сбор макулатуры и т.д.)
 📆События в классе (даты экзаменов, контрольных, экскурсий и т.п)
 
 Всё будет приходить прямо в этот чат
 
-👇Нажми кнопку \"Календарь\" и увидишь, что запланировано на ближайшее будущее"
+👇Нажте кнопку \"Календарь\" и увидишь, что запланировано на ближайшее будущее"
 """
 
 ID_OF_THE_TEACHER = 526809653  # id of the teacher
+
+HELP = "help"
+CMD = "cmd"
 
 
 # Start command
@@ -44,19 +41,28 @@ def _cmd_start(_tb, message, _args):
     )  # all_user_id.add(message.chat.id)
     all_user_id = database.get_user_list()
     logger.info(f"All user id: {all_user_id}")
-    return bot.MessageText(GREETING_MESSAGE), None
+    return GREETING_MESSAGE, None
 
 
-CMD_START = {HELP: "Добавляет тебя как пользователя", ARGS: {}, FUNC: _cmd_start}
+CMD_START = {
+    CMD: "/start",
+    HELP: "Добавляет вас как пользователя",
+    ARGS: {},
+    FUNC: _cmd_start,
+}
 
 
 # Help command
 def _cmd_help(tb, message, _args):
-    docstring = tb.docstring(message.chat.id)
-    return bot.MessageText(f"Как пользоваться? ⚙\n{docstring}"), None
+    interf = _interface(tb, message.chat.id)
+    docstring = ""
+    for key, value in interf.items():
+        if value.get(HELP):
+            docstring += f"{key} - {value[HELP]}\n"
+    return f"Как пользоваться? ⚙\n{docstring}", None
 
 
-CMD_HELP = {HELP: "Выводит справку", ARGS: {}, FUNC: _cmd_help}
+CMD_HELP = {CMD: "Справочник ⚙", HELP: "Выводит справку", ARGS: {}, FUNC: _cmd_help}
 
 
 # Calendar command
@@ -66,7 +72,7 @@ def _cmd_calendar(_tb, _message, _args):
 
     if len(event_list) == 0:
         return (
-            bot.MessageText("Пока ничего не запланировано. Можно отдохнуть 🙃"),
+            "Пока ничего не запланировано. Можно отдохнуть 🙃",
             None,
         )
 
@@ -87,10 +93,11 @@ def _cmd_calendar(_tb, _message, _args):
         datestring = datetime.datetime.fromtimestamp(time).strftime("%d.%m (%a)")
         res_message += f"📌 {datestring}:\n{local_message}"
 
-    return bot.MessageText(res_message), None
+    return res_message, None
 
 
 CMD_CALENDAR = {
+    CMD: "Календарь 🗓",
     HELP: "Показывает список дат и прикрепленных к ним событий",
     ARGS: {},
     FUNC: _cmd_calendar,
@@ -102,10 +109,8 @@ def _cmd_add_event(tb, _message, args):
     date, _ = args["date"]
     text, _ = args["text"]
     database.add_event(text, date.timestamp())
-    tb.send_all(
-        database.get_user_list(), bot.MessageText(f'{date.strftime("%d.%m")} - {text}')
-    )
-    return bot.MessageText("Календарь обновлён"), None
+    tb.send_all(database.get_user_list(), f'{date.strftime("%d.%m")} - {text}')
+    return "Календарь обновлён", None
 
 
 def _parse_date(message):
@@ -125,21 +130,31 @@ def _parse_date(message):
         return None, "Пожалуйста отправляйте дату в формате дд.мм.гггг"
 
 
-def gen_date_menu(size):
+def gen_date_menu(cols, rows):
     """
     Generates menu for dates
     """
     now = datetime.datetime.now()
     dayspan = datetime.timedelta(days=1)
-    return gen_menu([(now + dayspan * n).strftime("%d.%m.%Y") for n in range(size)])
+    return Keyboard(
+        [
+            [(now + dayspan * (rows * i + j)).strftime("%d.%m.%Y") for j in range(cols)]
+            for i in range(rows)
+        ]
+    )
 
 
 CMD_ADD_EVENT = {
+    CMD: "Добавить событие 🗓",
     HELP: "Позволяет Вам добавить событие в календарь на конкретную дату.",
     ARGS: {
-        "date": {KB: gen_date_menu(16), MESSAGE: "Выберите дату", PARSER: _parse_date,},
+        "date": {
+            KB: gen_date_menu(2, 8),
+            MESSAGE: "Выберите дату",
+            PARSER: _parse_date,
+        },
         "text": {
-            KB: empty_menu(),
+            KB: Keyboard(),
             MESSAGE: "Напишите название события",
             PARSER: lambda message: (message.text, None),
         },
@@ -148,47 +163,15 @@ CMD_ADD_EVENT = {
 }
 
 
-# Send all command
-def _cmd_send_all(tb, _message, args):
-    message, _ = args["message"]
-    tb.send_all(database.get_user_list(), bot.MessageCopy(message))
-    return bot.MessageText("Сообщение разослано"), None
-
-
-CMD_SEND_ALL = {
-    HELP: "Рассылает всем сообщение",
-    ARGS: {
-        "message": {
-            KB: empty_menu(),
-            MESSAGE: "Введите сообщение (можно прикрепить фото или файлы)",
-            PARSER: lambda message: (message, None),
-        }
-    },
-    FUNC: _cmd_send_all,
-}
-
-KEY_START = "/start"
-KEY_HELP = "Справочник ⚙"
-KEY_CALENDAR = "Календарь 🗓"
-KEY_ADD_EVENT = "Добавить событие 🗓"
-KEY_SEND_ALL = "Отправить всем 💬"
+def _build_interface(cmds):
+    return {item[CMD]: item for item in cmds}
 
 
 def _interface(_tb, chatid):
     if database.is_teacher(chatid):
-        return {
-            KEY_START: CMD_START,
-            KEY_HELP: CMD_HELP,
-            KEY_CALENDAR: CMD_CALENDAR,
-            KEY_ADD_EVENT: CMD_ADD_EVENT,
-            KEY_SEND_ALL: CMD_SEND_ALL,
-        }
+        return _build_interface([CMD_START, CMD_HELP, CMD_CALENDAR, CMD_ADD_EVENT])
     else:
-        return {
-            KEY_START: CMD_START,
-            KEY_HELP: CMD_HELP,
-            KEY_CALENDAR: CMD_CALENDAR,
-        }
+        return _build_interface([CMD_START, CMD_HELP, CMD_CALENDAR])
 
 
 def _main():

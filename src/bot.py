@@ -9,103 +9,60 @@ import log
 
 logger = log.Logger(["LIBBOT", log.FBLUE])
 
+CANCEL_BUTTON = "Отмена ❌"
 KB = "kb"
 ARGS = "args"
 FUNC = "func"
 MESSAGE = "message"
 PARSER = "parser"
-HELP = "help"
 
-MESSAGE_LOG = ["MESSAGE", log.FMAGENTA]
+
+def _format_user(message):
+    if message.chat.username:
+        return f"{message.chat.username}:{message.chat.id}"
+    else:
+        return f"{message.chat.id}"
+
+
+MSG = ["MSG", log.FMAGENTA]
 
 
 def _log_message(message):
-    print(type(message))
     logger.log(
-        [MESSAGE_LOG, [f"{message.chat.username}:{message.chat.id}", log.FGREEN]],
-        message.text,
+        [MSG, [_format_user(message), log.FGREEN], ["USR", log.FMAGENTA]], message.text,
     )
 
 
-def _log_bot_message(chatid, text):
-    logger.log([MESSAGE_LOG, [f"Bot->{chatid}", log.FGREEN]], text)
+def _log_bot_message(chatid, message):
+    logger.log(
+        [MSG, [_format_user(message), log.FGREEN], ["BOT", log.FBLUE]], message.text,
+    )
 
 
-def gen_menu(values):
-    """
-    Builds reply markup from options
-    """
+def _build_kb(keys):
+    if len(keys) == 0:
+        return types.ReplyKeyboardRemove()
+
     menu = types.ReplyKeyboardMarkup(True, False)
-
-    for i in range(len(values) // 2):
-        menu.row(values[2 * i], values[2 * i + 1])
-
-    if len(values) % 2 == 1:
-        menu.row(values[len(values) - 1])
-
+    for row in keys:
+        menu.row(*row)
     return menu
 
 
-def empty_menu():
-    """
-    Builds empty menu reply markup
-    """
-    return types.ReplyKeyboardRemove()
+class Keyboard:
+    """Class for menu creation"""
 
+    def __init__(self, keys: list[list[str]] = []):
+        self.keys = keys
 
-def _keyb(interf):
-    keys = list(interf.keys())
-    return gen_menu(keys)
+    def build_with(self, opts):
+        """Builds the reply markup with opts on top"""
+        keys = opts + self.keys
+        return _build_kb(keys)
 
-
-class MessageText:
-    """
-    Text message instruction
-    """
-
-    def __init__(self, text):
-        self.text = text
-
-    def send(self, bot, chatid):
-        """
-        Sends message to chatid
-        """
-        bot.send_text(chatid, self.text)
-
-
-class MessageCopy:
-    """
-    Copy message instruction
-    """
-
-    def __init__(self, message):
-        self.message = message
-
-    def send(self, bot, chatid):
-        """
-        Sends message chatid
-        """
-        _log_bot_message(chatid, self.message.text)
-
-        if self.message.content_type == "poll":
-            bot.bot_handle.forward_message(
-                chatid,
-                self.message.chat.id,
-                self.message.message_id,
-                reply_markup=bot.get_kb(chatid),
-            )
-        elif self.message.content_type == "photo":
-            bot.bot_handle.send_photo(
-                chatid, self.message.photo[0].file_id, reply_markup=bot.get_kb(chatid)
-            )
-        elif self.message.content_type:
-            bot.bot_handle.copy_message(
-                chatid,
-                self.message.chat.id,
-                self.message.message_id,
-                self.message.caption,
-                reply_markup=bot.get_kb(chatid),
-            )
+    def build(self):
+        """Builds the reply markup"""
+        return _build_kb(self.keys)
 
 
 class Bot:
@@ -138,7 +95,7 @@ class Bot:
             ]
         )
         def handler(message):
-            self._text_handler(message)
+            self._message_handler(message)
 
     def start(self):
         """
@@ -146,39 +103,28 @@ class Bot:
         """
         self.bot_handle.infinity_polling()
 
-    def docstring(self, chatid):
-        """
-        Generates the docstring
-        """
-        interface = self._get_interface(chatid)
-        docs = ""
-        for cmd in interface.keys():
-            docs += f"{cmd} - {interface[cmd][HELP]}\n"
-        return docs
-
     def _send_message_kb(self, chatid, text, mark):
-        _log_bot_message(chatid, text)
-        return self.bot_handle.send_message(chatid, text, reply_markup=mark)
+        message = self.bot_handle.send_message(chatid, text, reply_markup=mark)
+        _log_bot_message(chatid, message)
+        return message
 
     def get_kb(self, chatid):
         """
         Gets default reply markup
         """
-        return _keyb(self._get_interface(chatid))
+        keylist = list(self._get_interface(chatid))
+        keys = [[keylist[2 * i], keylist[2 * i + 1]] for i in range(len(keylist) // 2)]
+        if len(keylist) % 2 == 1:
+            keylist.append(len(keylist) - 1)
+        return Keyboard(keys)
 
-    def send_text(self, chatid, text):
+    def send_message(self, chatid, text):
         """
         Sends message with text
         """
-        return self._send_message_kb(chatid, text, self.get_kb(chatid))
+        return self._send_message_kb(chatid, text, self.get_kb(chatid).build())
 
-    def send_message(self, chatid, message):
-        """
-        Sends message object
-        """
-        message.send(self, chatid)
-
-    def send_all(self, ids, message):
+    def send_all(self, ids, text):
         """
         Sends message object to a list of ids
         """
@@ -187,23 +133,23 @@ class Bot:
             try:
                 for i in range(count, len(ids)):
                     count += 1
-                    self.send_message(ids[i], message)
+                    self.send_message(ids[i], text)
                     time.sleep(0.5)
                 else:
                     break
             except Exception as err:
-                logger.warn(f"Error 403. {ids[i]} blocked me\n{str(err)}\n")
+                logger.warn(f"Error on user {ids[i]}:\n{str(err)}\n")
 
     def _get_interface(self, chatid):
         return (self._interface_fn)(self, chatid)
 
-    def _text_handler(self, f_msg):
+    def _message_handler(self, f_msg):
         chatid = f_msg.chat.id
         interf = self._get_interface(chatid)
 
         if interf.get(f_msg.text) is None:
             _log_message(f_msg)
-            self.send_text(
+            self.send_message(
                 chatid,
                 "Ошибка: команда не найдена, "
                 'для списка команд напишите "Справочник ⚙"',
@@ -220,11 +166,15 @@ class Bot:
                     try:
                         # read value
                         if s_num > 0:
+                            if s_msg.text == CANCEL_BUTTON:
+                                self.send_message(chatid, "Действие отменено")
+                                return
+
                             value, err = command[ARGS][keys[s_num - 1]][PARSER](s_msg)
 
                             if err is not None:
                                 logger.warn(f"Handled: {err}")
-                                self.send_text(chatid, f"Ошибка: {err}")
+                                self.send_message(chatid, f"Ошибка: {err}")
                                 return
 
                             args[keys[s_num - 1]] = (value, s_msg)
@@ -234,7 +184,9 @@ class Bot:
                             send = self._send_message_kb(
                                 chatid,
                                 command[ARGS][keys[s_num]][MESSAGE],
-                                command[ARGS][keys[s_num]][KB],
+                                command[ARGS][keys[s_num]][KB].build_with(
+                                    [[CANCEL_BUTTON]]
+                                ),
                             )
 
                             self.bot_handle.register_next_step_handler(
@@ -247,7 +199,7 @@ class Bot:
 
                             if err is not None:
                                 logger.warn(f"Handled: {err}")
-                                self.send_text(chatid, f"Ошибка: {err}")
+                                self.send_message(chatid, f"Ошибка: {err}")
                                 return
 
                             if reply is None:
@@ -260,7 +212,7 @@ class Bot:
                     except Exception as err:
                         traceback.print_exc()
                         logger.error(err)
-                        self.send_text(chatid, "Ошибка на сервере")
+                        self.send_message(chatid, "Ошибка на сервере")
 
                 return ret
 
