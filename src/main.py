@@ -1,5 +1,4 @@
 """Main module with def main()"""
-import traceback
 import os
 import re
 import datetime
@@ -24,8 +23,6 @@ GREETING_MESSAGE = """Привет👋
 👇Нажте кнопку \"Календарь\" и увидишь, что запланировано на ближайшее будущее"
 """
 
-ID_OF_THE_TEACHER = 526809653  # id of the teacher
-
 HELP = "help"
 CMD = "cmd"
 
@@ -34,11 +31,7 @@ CMD = "cmd"
 def _cmd_start(_tb, message, _args):
     chatid = message.chat.id
     # adding user to the database
-    database.add_user(
-        chatid, chatid == ID_OF_THE_TEACHER
-    )  # all_user_id.add(message.chat.id)
-    all_user_id = database.get_user_list()
-    logger.info(f"All user id: {all_user_id}")
+    database.add_user(chatid, False)
     return GREETING_MESSAGE, None
 
 

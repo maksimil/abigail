@@ -54,47 +54,57 @@ def init_db():
 
 
 # Operations with users
+UID = "uid"
+IS_TEACHER = "is_teacher"
+
+
 def add_user(uid: int, ist: bool):
     """
     Adds user to the database
     Doesn't add them if they are already in the db
     """
-    if users.find_one({"uid": uid}) is None:
-        users.insert_one({"uid": uid, "is_teacher": ist})
+    if users.find_one({UID: uid}) is None:
+        users.insert_one({UID: uid, IS_TEACHER: ist})
+    logger.info(f"User list: {get_user_list()}")
+
+
+def set_is_teacher(uid: int, its: bool):
+    """Sets is_teacher status for a user"""
+    users.update_one({UID: uid}, {"$set": {IS_TEACHER: its}})
 
 
 def is_teacher(uid: int) -> bool:
-    """
-    Checks if a user is a teacher
-    """
-    user = users.find_one({"uid": uid})
+    """Checks if a user is a teacher"""
+    user = users.find_one({UID: uid})
     if user is None:
+        logger.warn(f"is_teacher({uid}) failed because the uid is not in the db")
         return False
-    return user["is_teacher"]
+    return user[IS_TEACHER]
 
 
 def get_user_list():
     """Gets the list of all users"""
-    userlist = set()
-    for user in users.find():
-        userlist.add(user["uid"])
-    return list(userlist)
+    return [user[UID] for user in users.find()]
 
 
 # Operations with events
+TEXT = "text"
+TIMESTAMP = "timestamp"
+
+
 def add_event(text: str, day: int):
     """Adds event"""
-    events.insert_one({"text": text, "timestamp": day})
+    events.insert_one({TEXT: text, TIMESTAMP: day})
 
 
 def events_from_period(start: int, end: int):
     """Gets every event in [`start`;`end`) period"""
-    return list(events.find({"timestamp": {"$gte": start, "$lt": end}}))
+    return list(events.find({TIMESTAMP: {"$gte": start, "$lt": end}}))
 
 
 def get_events_since(start: int):
     """Gets every event since `start` timestamp"""
-    return list(events.find({"timestamp": {"$gte": start}}))
+    return list(events.find({TIMESTAMP: {"$gte": start}}))
 
 
 # Operations with global values
