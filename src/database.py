@@ -1,3 +1,4 @@
+"""Module for database access"""
 import os
 import pymongo
 import log
@@ -9,9 +10,7 @@ INITIAL_VALUES = {}
 
 
 def init_db():
-    """
-    Initializes the connection to database
-    """
+    """Initializes the connection to database"""
     global values, users, events
 
     # Connection to the database
@@ -54,6 +53,7 @@ def init_db():
     logger.info("Started the db")
 
 
+# Operations with users
 def add_user(uid: int, ist: bool):
     """
     Adds user to the database
@@ -74,40 +74,32 @@ def is_teacher(uid: int) -> bool:
 
 
 def get_user_list():
-    """
-    Gets the list of all users
-    """
+    """Gets the list of all users"""
     userlist = set()
     for user in users.find():
         userlist.add(user["uid"])
     return list(userlist)
 
 
+# Operations with events
 def add_event(text: str, day: int):
-    """
-    Adds event
-    """
+    """Adds event"""
     events.insert_one({"text": text, "timestamp": day})
 
 
 def events_from_period(start: int, end: int):
-    """
-    Gets every event in [`start`;`end`) period
-    """
+    """Gets every event in [`start`;`end`) period"""
     return list(events.find({"timestamp": {"$gte": start, "$lt": end}}))
 
 
 def get_events_since(start: int):
-    """
-    Gets every event since `start` timestamp
-    """
+    """Gets every event since `start` timestamp"""
     return list(events.find({"timestamp": {"$gte": start}}))
 
 
+# Operations with global values
 def get_value(name):
-    """
-    Gets global value `name`
-    """
+    """Gets global value `name`"""
     vs = values.find_one({})
     if vs.get(name) is None:
         logger.error("value {name} not found")
@@ -116,8 +108,6 @@ def get_value(name):
 
 
 def update_value(name, value):
-    """
-    Updates global value `name` to `value`
-    """
+    """Updates global value `name` to `value`"""
     logger.info(f"Updated {name} to {value}")
     values.update_one({}, {"$set": {name: value}})

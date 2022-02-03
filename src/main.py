@@ -1,11 +1,9 @@
-"""
-Main module
-"""
+"""Main module with def main()"""
 import traceback
 import os
 import re
 import datetime
-from bot import ARGS, FUNC, KB, MESSAGE, PARSER, Keyboard
+from bot import ARGS, FUNC, KB, MESSAGE, PARSER, HIDDEN, Keyboard
 import bot
 import database
 import log
@@ -46,7 +44,7 @@ def _cmd_start(_tb, message, _args):
 
 CMD_START = {
     CMD: "/start",
-    HELP: "Добавляет вас как пользователя",
+    HIDDEN: True,
     ARGS: {},
     FUNC: _cmd_start,
 }
@@ -131,9 +129,7 @@ def _parse_date(message):
 
 
 def gen_date_menu(cols, rows):
-    """
-    Generates menu for dates
-    """
+    """Generates menu for date"""
     now = datetime.datetime.now()
     dayspan = datetime.timedelta(days=1)
     return Keyboard(
@@ -169,9 +165,9 @@ def _build_interface(cmds):
 
 def _interface(_tb, chatid):
     if database.is_teacher(chatid):
-        return _build_interface([CMD_START, CMD_HELP, CMD_CALENDAR, CMD_ADD_EVENT])
+        return _build_interface([CMD_CALENDAR, CMD_ADD_EVENT, CMD_START, CMD_HELP])
     else:
-        return _build_interface([CMD_START, CMD_HELP, CMD_CALENDAR])
+        return _build_interface([CMD_CALENDAR, CMD_START, CMD_HELP])
 
 
 def _main():

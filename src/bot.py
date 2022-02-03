@@ -15,6 +15,7 @@ ARGS = "args"
 FUNC = "func"
 MESSAGE = "message"
 PARSER = "parser"
+HIDDEN = "hidden"
 
 
 def _format_user(message):
@@ -66,9 +67,7 @@ class Keyboard:
 
 
 class Bot:
-    """
-    The telegram bot class
-    """
+    """The telegram bot class"""
 
     def __init__(self, key, interface_fn):
         self.bot_handle = telebot.TeleBot(key, parse_mode=None)
@@ -98,9 +97,7 @@ class Bot:
             self._message_handler(message)
 
     def start(self):
-        """
-        Starts the bot
-        """
+        """Starts the bot"""
         self.bot_handle.infinity_polling()
 
     def _send_message_kb(self, chatid, text, mark):
@@ -109,25 +106,23 @@ class Bot:
         return message
 
     def get_kb(self, chatid):
-        """
-        Gets default reply markup
-        """
-        keylist = list(self._get_interface(chatid))
+        """Gets default reply markup"""
+        keylist = []
+        interf = self._get_interface(chatid)
+        for key, value in interf.items():
+            if not value.get(HIDDEN, False):
+                keylist.append(key)
         keys = [[keylist[2 * i], keylist[2 * i + 1]] for i in range(len(keylist) // 2)]
         if len(keylist) % 2 == 1:
-            keylist.append(len(keylist) - 1)
+            keys.append([keylist[len(keylist) - 1]])
         return Keyboard(keys)
 
     def send_message(self, chatid, text):
-        """
-        Sends message with text
-        """
+        """Sends message with text"""
         return self._send_message_kb(chatid, text, self.get_kb(chatid).build())
 
     def send_all(self, ids, text):
-        """
-        Sends message object to a list of ids
-        """
+        """Sends message object to a list of ids"""
         count = 0
         while True:
             try:
