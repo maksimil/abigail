@@ -6,6 +6,7 @@ import traceback
 import telebot
 from telebot import types
 import log
+import database
 
 logger = log.Logger(["LIBBOT", log.FBLUE])
 
@@ -28,7 +29,7 @@ def _format_user(message):
 MSG = ["MSG", log.FMAGENTA]
 
 
-def _log_message(message):
+def log_usr_message(message):
     logger.log(
         [MSG, [_format_user(message), log.FGREEN], ["USR", log.FMAGENTA]], message.text,
     )
@@ -100,7 +101,8 @@ class Bot:
         """Starts the bot"""
         self.bot_handle.infinity_polling()
 
-    def _send_message_kb(self, chatid, text, mark):
+    def send_message_kb(self, chatid, text, mark):
+        """Sends message with a set reply markup"""
         message = self.bot_handle.send_message(chatid, text, reply_markup=mark)
         _log_bot_message(chatid, message)
         return message
@@ -119,21 +121,35 @@ class Bot:
 
     def send_message(self, chatid, text):
         """Sends message with text"""
-        return self._send_message_kb(chatid, text, self.get_kb(chatid).build())
+        return self.send_message_kb(chatid, text, self.get_kb(chatid).build())
 
     def send_all(self, ids, text):
         """Sends message object to a list of ids"""
-        count = 0
-        while True:
+        for i in ids:
             try:
-                for i in range(count, len(ids)):
-                    count += 1
-                    self.send_message(ids[i], text)
-                    time.sleep(0.5)
-                else:
-                    break
+                self.send_message_kb(i, text, None)
+                # time.sleep(0.1)
             except Exception as err:
-                logger.warn(f"Error on user {ids[i]}:\n{str(err)}\n")
+                logger.warn(f"Error on user {i}:\n{str(err)}")
+
+    def copy_message(self, chatid, message):
+        """Copies message to an id"""
+        if message.content_type == "poll":
+            self.bot_handle.forward_message(chatid, message.chat.id, message.message_id)
+        else:
+            self.bot_handle.copy_message(
+                chatid, message.chat.id, message.message_id, message.caption
+            )
+        _log_bot_message(chatid, message)
+
+    def copy_all(self, ids, message):
+        """Copies message object to a list of ids"""
+        for i in ids:
+            try:
+                self.copy_message(i, message)
+                # time.sleep(0.1)
+            except Exception as err:
+                logger.warn(f"Error on user {i}:\n{str(err)}")
 
     def _get_interface(self, chatid):
         return (self._interface_fn)(self, chatid)
@@ -143,13 +159,11 @@ class Bot:
         interf = self._get_interface(chatid)
 
         if interf.get(f_msg.text) is None:
-            _log_message(f_msg)
-            self.send_message(
-                chatid,
-                "Ошибка: команда не найдена, "
-                'для списка команд напишите "Справочник ⚙"',
-            )
-
+            log_usr_message(f_msg)
+            # copying message to all
+            if database.is_teacher(f_msg.chat.id):
+                ids = database.get_user_list()
+                self.copy_all(ids, f_msg)
         else:
             command = interf[f_msg.text]
             keys = list(command[ARGS].keys())
@@ -157,7 +171,7 @@ class Bot:
 
             def step(s_num):
                 def ret(s_msg):
-                    _log_message(s_msg)
+                    log_usr_message(s_msg)
                     try:
                         # read value
                         if s_num > 0:
@@ -176,7 +190,7 @@ class Bot:
 
                         # ask question
                         if s_num < len(keys):
-                            send = self._send_message_kb(
+                            send = self.send_message_kb(
                                 chatid,
                                 command[ARGS][keys[s_num]][MESSAGE],
                                 command[ARGS][keys[s_num]][KB].build_with(

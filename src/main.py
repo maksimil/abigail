@@ -1,10 +1,12 @@
 """Main module with def main()"""
+import time
 import os
 import re
 import datetime
 from bot import ARGS, FUNC, KB, MESSAGE, PARSER, HIDDEN, Keyboard
 import bot
 import database
+from database import TIMESTAMP, TEXT, SUBJECT
 import log
 
 # Logger initialization
@@ -69,9 +71,9 @@ def _cmd_calendar(_tb, _message, _args):
 
     events_map = {}
     for event in event_list:
-        if events_map.get(event["timestamp"]) is None:
-            events_map[event["timestamp"]] = []
-        events_map[event["timestamp"]].append(event["text"])
+        if events_map.get(event[TIMESTAMP]) is None:
+            events_map[event[TIMESTAMP]] = []
+        events_map[event[TIMESTAMP]].append(event[TEXT])
 
     res_message = ""
     times_list = list(events_map.keys())
@@ -101,7 +103,7 @@ def _cmd_add_event(tb, _message, args):
     text, _ = args["text"]
     database.add_event(text, date.timestamp())
     tb.send_all(database.get_user_list(), f'{date.strftime("%d.%m")} - {text}')
-    return "Календарь обновлён", None
+    return "Календарь обновлён 🗓", None
 
 
 def _parse_date(message):
@@ -127,7 +129,7 @@ def gen_date_menu(cols, rows):
     dayspan = datetime.timedelta(days=1)
     return Keyboard(
         [
-            [(now + dayspan * (rows * i + j)).strftime("%d.%m.%Y") for j in range(cols)]
+            [(now + dayspan * (cols * i + j)).strftime("%d.%m.%Y") for j in range(cols)]
             for i in range(rows)
         ]
     )
@@ -151,6 +153,76 @@ CMD_ADD_EVENT = {
     FUNC: _cmd_add_event,
 }
 
+# Add homework
+def _cmd_add_homework(tb, _message, args):
+    subject, _ = args["subject"]
+    date, _ = args["date"]
+    text, _ = args["text"]
+    database.add_hw(subject, date.timestamp(), text)
+    tb.send_all(
+        database.get_user_list(), f'{date.strftime("%d.%m")} - {subject}: {text}'
+    )
+    return "Задание добавлено 📚", None
+
+
+CMD_ADD_HOMEWORK = {
+    CMD: "Добавить дз 📚",
+    HELP: "Добавляет дз",
+    ARGS: {
+        "date": {
+            KB: gen_date_menu(2, 8),
+            MESSAGE: "К какому сроку нужно сдать это дз?",
+            PARSER: _parse_date,
+        },
+        "subject": {
+            KB: Keyboard(),
+            MESSAGE: "Напишите предмет дз",
+            PARSER: lambda message: (message.text, None),
+        },
+        "text": {
+            KB: Keyboard(),
+            MESSAGE: "Какое содержание дз?",
+            PARSER: lambda message: (message.text, None),
+        },
+    },
+    FUNC: _cmd_add_homework,
+}
+
+# Homework command
+def _cmd_homework(_tb, _message, _args):
+    now = datetime.datetime.now().timestamp()
+    hw_list = database.get_hw_since(now - 60 * 60 * 24)
+
+    logger.info(hw_list)
+
+    if len(hw_list) == 0:
+        return ("Пока домашний заданий нет", None)
+
+    hw_map = {}
+    for hw in hw_list:
+        if hw_map.get(hw[TIMESTAMP]) is None:
+            hw_map[hw[TIMESTAMP]] = []
+        hw_map[hw[TIMESTAMP]].append(hw)
+
+    res_message = ""
+    times_list = list(hw_map.keys())
+    times_list.sort()
+
+    for time in times_list:
+        local_message = "".join([f"{hw[SUBJECT]}: {hw[TEXT]}\n" for hw in hw_map[time]])
+        datestring = datetime.datetime.fromtimestamp(time).strftime("%d.%m (%a)")
+        res_message += f"📌 {datestring}:\n{local_message}"
+
+    return res_message, None
+
+
+CMD_HOMEWORK = {
+    CMD: "Домашнее задание 📚",
+    HELP: "Показывает домашнее задание",
+    ARGS: {},
+    FUNC: _cmd_homework,
+}
+
 
 def _build_interface(cmds):
     return {item[CMD]: item for item in cmds}
@@ -158,9 +230,18 @@ def _build_interface(cmds):
 
 def _interface(_tb, chatid):
     if database.is_teacher(chatid):
-        return _build_interface([CMD_CALENDAR, CMD_ADD_EVENT, CMD_START, CMD_HELP])
+        return _build_interface(
+            [
+                CMD_CALENDAR,
+                CMD_ADD_EVENT,
+                CMD_HOMEWORK,
+                CMD_ADD_HOMEWORK,
+                CMD_HELP,
+                CMD_START,
+            ]
+        )
     else:
-        return _build_interface([CMD_CALENDAR, CMD_START, CMD_HELP])
+        return _build_interface([CMD_CALENDAR, CMD_HOMEWORK, CMD_START, CMD_HELP])
 
 
 def _main():

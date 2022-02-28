@@ -11,7 +11,7 @@ INITIAL_VALUES = {}
 
 def init_db():
     """Initializes the connection to database"""
-    global values, users, events
+    global values, users, events, homework
 
     # Connection to the database
     logger.info("Initializing the connection")
@@ -32,6 +32,7 @@ def init_db():
     users = abigail["users"]
     events = abigail["events"]
     values = abigail["values"]
+    homework = abigail["homework"]
 
     # Initializing the values
     logger.info("Initializing values")
@@ -97,14 +98,23 @@ def add_event(text: str, day: int):
     events.insert_one({TEXT: text, TIMESTAMP: day})
 
 
-def events_from_period(start: int, end: int):
-    """Gets every event in [`start`;`end`) period"""
-    return list(events.find({TIMESTAMP: {"$gte": start, "$lt": end}}))
-
-
 def get_events_since(start: int):
     """Gets every event since `start` timestamp"""
     return list(events.find({TIMESTAMP: {"$gte": start}}))
+
+
+# Operations with homework
+SUBJECT = "subject"
+
+
+def add_hw(subject: str, timestamp: int, text: str):
+    """Adds homework"""
+    homework.insert_one({SUBJECT: subject, TIMESTAMP: timestamp, TEXT: text})
+
+
+def get_hw_since(start: int):
+    """Get homework since"""
+    return list(homework.find({TIMESTAMP: {"$gte": start}}))
 
 
 # Operations with global values
