@@ -15,7 +15,6 @@ export PROJECTNAME="abigail"
 * Команды без ~docker~
 
 Очистка БД
-
 #+BEGIN_SRC bash
 python ./scripts/restart-mongod.py
 #+END_SRC
@@ -37,8 +36,17 @@ sh ./scripts/mongosh.sh
 
 * Команды ~docker~
 
-Запуск c помощью docker-compose (запускает БД и бота в фоне, выдаёт stdout бота на выводе, для остановки ~docker-compose down~)
-
+Запуск c помощью docker-compose (запускает БД и бота в фоне, выдаёт stdout бота на выводе)
 #+BEGIN_SRC bash
-sh ./scripts/docker.sh
+sh ./scripts/docker-up
+#+END_SRC
+
+Остановка контейнера бота
+#+BEGIN_SRC bash
+sh ./scripts/docker-down
+#+END_SRC
+
+Прсмотр логов бота
+#+BEGIN_SRC bash
+sh ./scripts/docker-logs
 #+END_SRC

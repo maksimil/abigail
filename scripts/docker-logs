@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 . ./env.sh
 docker logs -f $(docker ps -f $(printf "ancestor=%s_python" "$PROJECTNAME") --format "{{.ID}}")
