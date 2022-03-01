@@ -98,11 +98,11 @@ CMD_CALENDAR = {
 
 
 # Add event command
-def _cmd_add_event(tb, _message, args):
+def _cmd_add_event(_tb, _message, args):
     date, _ = args["date"]
     text, _ = args["text"]
     database.add_event(text, date.timestamp())
-    tb.send_all(database.get_user_list(), f'{date.strftime("%d.%m")} - {text}')
+    # tb.send_all(database.get_user_list(), f'{date.strftime("%d.%m")} - {text}')
     return "Календарь обновлён 🗓", None
 
 
@@ -153,15 +153,15 @@ CMD_ADD_EVENT = {
     FUNC: _cmd_add_event,
 }
 
-# Add homework
-def _cmd_add_homework(tb, _message, args):
+
+def _cmd_add_homework(_tb, _message, args):
     subject, _ = args["subject"]
     date, _ = args["date"]
     text, _ = args["text"]
     database.add_hw(subject, date.timestamp(), text)
-    tb.send_all(
-        database.get_user_list(), f'{date.strftime("%d.%m")} - {subject}: {text}'
-    )
+    # tb.send_all(
+    #     database.get_user_list(), f'{date.strftime("%d.%m")} - {subject}: {text}'
+    # )
     return "Задание добавлено 📚", None
 
 
@@ -193,7 +193,7 @@ def _cmd_homework(_tb, _message, _args):
     now = datetime.datetime.now().timestamp()
     hw_list = database.get_hw_since(now - 60 * 60 * 24)
 
-    logger.info(hw_list)
+    # logger.info(hw_list)
 
     if len(hw_list) == 0:
         return ("Пока домашний заданий нет", None)
