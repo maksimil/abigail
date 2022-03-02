@@ -212,7 +212,10 @@ def _cmd_homework(_tb, _message, _args):
     times_list.sort()
 
     for time in times_list:
-        local_message = "\n".join([format_hw(hw) for hw in hw_map[time]])
+        hws = hw_map[time]
+        hws.sort(key=lambda hw: hw[SUBJECT])
+
+        local_message = "\n".join([format_hw(hw) for hw in hws])
         datestring = datetime.datetime.fromtimestamp(time).strftime("%d.%m (%a)")
         res_message += f"<b>📌 {datestring}</b>\n{local_message}\n\n"
 
