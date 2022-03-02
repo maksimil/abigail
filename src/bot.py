@@ -71,7 +71,7 @@ class Bot:
     """The telegram bot class"""
 
     def __init__(self, key, interface_fn):
-        self.bot_handle = telebot.TeleBot(key, parse_mode=None)
+        self.bot_handle = telebot.TeleBot(key, parse_mode="HTML")
         self._interface_fn = interface_fn
 
         @self.bot_handle.message_handler(

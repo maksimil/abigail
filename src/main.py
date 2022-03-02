@@ -81,10 +81,13 @@ def _cmd_calendar(_tb, _message, _args):
 
     for time in times_list:
         local_message = "".join(
-            [f"{order}) {event}\n" for (order, event) in enumerate(events_map[time], 1)]
+            [
+                f"{order}) {event}\n\n"
+                for (order, event) in enumerate(events_map[time], 1)
+            ]
         )
         datestring = datetime.datetime.fromtimestamp(time).strftime("%d.%m (%a)")
-        res_message += f"📌 {datestring}:\n{local_message}"
+        res_message += f"📌 {datestring}:\n{local_message}\n"
 
     return res_message, None
 
@@ -209,9 +212,11 @@ def _cmd_homework(_tb, _message, _args):
     times_list.sort()
 
     for time in times_list:
-        local_message = "".join([f"{hw[SUBJECT]}: {hw[TEXT]}\n" for hw in hw_map[time]])
+        local_message = "".join(
+            [f"<b>{hw[SUBJECT]}</b>: {hw[TEXT]}\n" for hw in hw_map[time]]
+        )
         datestring = datetime.datetime.fromtimestamp(time).strftime("%d.%m (%a)")
-        res_message += f"📌 {datestring}:\n{local_message}"
+        res_message += f"📌 {datestring}:\n{local_message}\n"
 
     return res_message, None
 
