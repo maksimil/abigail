@@ -82,12 +82,12 @@ def _cmd_calendar(_tb, _message, _args):
     for time in times_list:
         local_message = "".join(
             [
-                f"{order}) {event}\n\n"
+                f"<code>{order}</code>: {event}\n"
                 for (order, event) in enumerate(events_map[time], 1)
             ]
         )
         datestring = datetime.datetime.fromtimestamp(time).strftime("%d.%m (%a)")
-        res_message += f"<code>📌 {datestring}</code>\n{local_message}\n\n"
+        res_message += f"<b>📌 {datestring}</b>\n{local_message}\n"
 
     return res_message, None
 
@@ -214,7 +214,7 @@ def _cmd_homework(_tb, _message, _args):
     for time in times_list:
         local_message = "\n".join([format_hw(hw) for hw in hw_map[time]])
         datestring = datetime.datetime.fromtimestamp(time).strftime("%d.%m (%a)")
-        res_message += f"<code>📌 {datestring}</code>\n{local_message}\n\n"
+        res_message += f"<b>📌 {datestring}</b>\n{local_message}\n\n"
 
     return res_message, None
 
@@ -225,9 +225,9 @@ def format_hw(hw):
     subject = hw[SUBJECT]
 
     if len(text.splitlines()) > 1:
-        text = "".join(["\n\t" + line for line in text.splitlines()])
+        text = "".join(["\n" + line for line in text.splitlines()])
 
-    return f"<b>{subject}</b>: {text}"
+    return f"<code>{subject}</code>: {text}"
 
 
 CMD_HOMEWORK = {
