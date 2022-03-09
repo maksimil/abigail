@@ -1,5 +1,4 @@
 """Main module with def main()"""
-import time
 import os
 import re
 import datetime
@@ -82,12 +81,12 @@ def _cmd_calendar(_tb, _message, _args):
     for time in times_list:
         local_message = "".join(
             [
-                f"<code>{order}</code>: {event}\n"
+                f"<code>👉</code> {event}\n"
                 for (order, event) in enumerate(events_map[time], 1)
             ]
         )
         datestring = datetime.datetime.fromtimestamp(time).strftime("%d.%m (%a)")
-        res_message += f"<b>📌 {datestring}</b>\n{local_message}\n"
+        res_message += f"<code><b>📌 {datestring}</b></code>\n{local_message}\n"
 
     return res_message, None
 
@@ -101,11 +100,11 @@ CMD_CALENDAR = {
 
 
 # Add event command
-def _cmd_add_event(_tb, _message, args):
+def _cmd_add_event(tb, _message, args):
     date, _ = args["date"]
     text, _ = args["text"]
     database.add_event(text, date.timestamp())
-    # tb.send_all(database.get_user_list(), f'{date.strftime("%d.%m")} - {text}')
+    tb.send_all(database.get_user_list(), f'🗓 {date.strftime("%d.%m")} - {text}')
     return "Календарь обновлён 🗓", None
 
 
@@ -138,23 +137,30 @@ def gen_date_menu(cols, rows):
     )
 
 
-CMD_ADD_EVENT = {
-    CMD: "Добавить событие 🗓",
-    HELP: "Позволяет Вам добавить событие в календарь на конкретную дату.",
-    ARGS: {
-        "date": {
-            KB: gen_date_menu(2, 8),
-            MESSAGE: "Выберите дату",
-            PARSER: _parse_date,
+def _parse_text(message):
+    if message.text is None:
+        return (None, "Поле не может быть пустым")
+    return (message.text, None)
+
+
+def _gen_cmd_add_event():
+    return {
+        CMD: "Добавить событие 🗓",
+        HELP: "Позволяет Вам добавить событие в календарь на конкретную дату.",
+        ARGS: {
+            "date": {
+                KB: gen_date_menu(2, 8),
+                MESSAGE: "Выберите дату",
+                PARSER: _parse_date,
+            },
+            "text": {
+                KB: Keyboard(),
+                MESSAGE: "Напишите название события",
+                PARSER: _parse_text,
+            },
         },
-        "text": {
-            KB: Keyboard(),
-            MESSAGE: "Напишите название события",
-            PARSER: lambda message: (message.text, None),
-        },
-    },
-    FUNC: _cmd_add_event,
-}
+        FUNC: _cmd_add_event,
+    }
 
 
 def _cmd_add_homework(_tb, _message, args):
@@ -168,28 +174,30 @@ def _cmd_add_homework(_tb, _message, args):
     return "Задание добавлено 📚", None
 
 
-CMD_ADD_HOMEWORK = {
-    CMD: "Добавить дз 📚",
-    HELP: "Добавляет дз",
-    ARGS: {
-        "date": {
-            KB: gen_date_menu(2, 8),
-            MESSAGE: "К какому сроку нужно сдать это дз?",
-            PARSER: _parse_date,
+def _gen_cmd_add_homework():
+    return {
+        CMD: "Добавить дз 📚",
+        HELP: "Добавляет дз",
+        ARGS: {
+            "date": {
+                KB: gen_date_menu(2, 8),
+                MESSAGE: "К какому сроку нужно сдать это дз?",
+                PARSER: _parse_date,
+            },
+            "subject": {
+                KB: Keyboard(),
+                MESSAGE: "Напишите предмет дз",
+                PARSER: _parse_text,
+            },
+            "text": {
+                KB: Keyboard(),
+                MESSAGE: "Какое содержание дз?",
+                PARSER: _parse_text,
+            },
         },
-        "subject": {
-            KB: Keyboard(),
-            MESSAGE: "Напишите предмет дз",
-            PARSER: lambda message: (message.text, None),
-        },
-        "text": {
-            KB: Keyboard(),
-            MESSAGE: "Какое содержание дз?",
-            PARSER: lambda message: (message.text, None),
-        },
-    },
-    FUNC: _cmd_add_homework,
-}
+        FUNC: _cmd_add_homework,
+    }
+
 
 # Homework command
 def _cmd_homework(_tb, _message, _args):
@@ -217,7 +225,7 @@ def _cmd_homework(_tb, _message, _args):
 
         local_message = "\n".join([format_hw(hw) for hw in hws])
         datestring = datetime.datetime.fromtimestamp(time).strftime("%d.%m (%a)")
-        res_message += f"<b>📌 {datestring}</b>\n{local_message}\n\n"
+        res_message += f"<code><b>📌 {datestring}</b></code>\n{local_message}\n\n"
 
     return res_message, None
 
@@ -230,7 +238,7 @@ def format_hw(hw):
     if len(text.splitlines()) > 1:
         text = "".join(["\n" + line for line in text.splitlines()])
 
-    return f"<code>{subject}</code>: {text}"
+    return f"<code>📚 {subject}</code>: {text}"
 
 
 CMD_HOMEWORK = {
@@ -250,9 +258,9 @@ def _interface(_tb, chatid):
         return _build_interface(
             [
                 CMD_CALENDAR,
-                CMD_ADD_EVENT,
+                _gen_cmd_add_event(),
                 CMD_HOMEWORK,
-                CMD_ADD_HOMEWORK,
+                _gen_cmd_add_homework(),
                 CMD_HELP,
                 CMD_START,
             ]
