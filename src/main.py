@@ -102,7 +102,7 @@ FOOD_CANTEEN_SCHEDULE = """
 🍑Суббота: суп с картошкой, тушеные овощи с куриной котлетой, маринованный огурец, яблочный сок, яблоко
 """ 
 
-subjects = {
+SUBJECTS = [
         "Русский", 
         "Литература", 
         "Алгебра", 
@@ -125,7 +125,7 @@ subjects = {
         "Аглийский язык (Рудь)",
         "География",
         "Физкультура",
-}
+]
 
 HELP = "help"
 CMD = "cmd"
@@ -167,7 +167,7 @@ def _cmd_lessons_schedule():
     )
 
 # Schedule food_canteen command
-def _cmd_foodCanteen_schedule():
+def _cmd_food_сanteen_schedule():
     return (
         FOOD_CANTEEN_SCHEDULE,
         None
@@ -290,13 +290,7 @@ def _cmd_add_homework(_tb, _message, args):
     # )
     return "Задание добавлено 📚", None
 
-def gen_homework_menu():
-    """Generates menu for homework"""
-    return Keyboard(
-        [
-            for i in subjects
-        ]
-    )
+SUBJECTS_MENU = Keyboard([for i in SUBJECTS])
 
 def _gen_cmd_add_homework():
     return {
@@ -309,7 +303,7 @@ def _gen_cmd_add_homework():
                 PARSER: _parse_date,
             },
             "subject": {
-                KB: gen_homework_menu(),
+                KB: SUBJECTS_MENU,
                 MESSAGE: "Напишите предмет дз",
                 PARSER: _parse_text,
             },
@@ -376,6 +370,19 @@ CMD_HOMEWORK = {
 def _build_interface(cmds):
     return {item[CMD]: item for item in cmds}
 
+CMD_LESSONS_SCHEDULE = {
+    CMD: "Расписание уроков",
+    HELP: "Показывает расписание уроков",
+    ARGS: {},
+    FUNC: _cmd_lessons_schedule,
+}
+
+CMD_FOOD_CANTEEN_SCHEDULE = {
+    CMD: "Расписание столовой",
+    HELP: "Показывает расписание еды в столовой",
+    ARGS: {},
+    FUNC: _cmd_food_сanteen_schedule,
+}
 
 def _interface(_tb, chatid):
     if database.is_teacher(chatid):
@@ -385,8 +392,8 @@ def _interface(_tb, chatid):
                 _gen_cmd_add_event(),
                 CMD_HOMEWORK,
                 _gen_cmd_add_homework(),
-                _cmd_lessons_schedule,
-                _cmd_foodCanteen_schedule,
+                CMD_LESSONS_SCHEDULE,
+                CMD_FOOD_CANTEEN_SCHEDULE,
                 CMD_HELP,
                 CMD_START,
             ]
@@ -396,8 +403,8 @@ def _interface(_tb, chatid):
             [
                 CMD_CALENDAR, 
                 CMD_HOMEWORK, 
-                _cmd_lessons_schedule, 
-                _cmd_foodCanteen_schedule, 
+                CMD_LESSONS_SCHEDULE, 
+                CMD_FOOD_CANTEEN_SCHEDULE, 
                 CMD_START, 
                 CMD_HELP,
             ]
