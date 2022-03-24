@@ -117,6 +117,17 @@ def get_hw_since(start: int):
     return list(homework.find({TIMESTAMP: {"$gte": start}}))
 
 
+def get_hw_date(date: int):
+    """Get homework by date"""
+    date = date - date % (24 * 60 * 60)
+    return list(homework.find({TIMESTAMP: date}))
+
+
+def get_hw_period(start: int, finish: int):
+    """Get hw in period [start;finish)"""
+    return list(homework.find({TIMESTAMP: {"$gte": start, "$lt": finish}}))
+
+
 # Operations with global values
 def get_value(name):
     """Gets global value `name`"""
