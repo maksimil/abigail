@@ -316,7 +316,7 @@ def _gen_cmd_add_homework():
             },
             "subject": {
                 KB: SUBJECTS_MENU,
-                MESSAGE: "Напишите предмет дз",
+                MESSAGE: "Выберите предмет дз",
                 PARSER: _parse_text,
             },
             "text": {
@@ -328,11 +328,53 @@ def _gen_cmd_add_homework():
         FUNC: _cmd_add_homework,
     }
 
+def _parse_date_hw(message):
+    if message.text == "Старое д/з":
+        return database.get_hw_period(now - 60*60*24*7, now), None
+    elif message.text == "Новое д/з":
+        return database.get_hw_since(now - 60 * 60 * 24), None
+    elif message.text == "Все д/з":
+        return database.get_hw_since(now - 60 * 60 * 24 * 7), None
+    try:
+        text = message.text
+        day, month, year = re.findall("^(.*)\\.(.*)\\.(.*)$", text)[0]
+
+        date = datetime.datetime(int(year), int(month), int(day))
+
+        return database.get_hw_date(date.timestamp()), None
+
+    except Exception as err:
+        logger.warn(f"Handled: {err}")
+        return None, "Пожалуйста выберите один из вариантов. Не надо вводить свой."
+
+def gen_date_menu_hw():
+    hw_list = database.get_hw_since(now - 60 * 60 * 24 * 7)
+    ts = set()
+    for hw in hw_list:
+        ts.add(hw[TIMESTAMP])
+    ts = list(ts)
+    ts.sort()
+    kb = []
+
+    for i in range(len(ts) // 2):
+        kb.append(ts[2 * i : 2 * i + 2])
+
+    if len(ts) % 2 != 0:
+        kb.append([ts[-1]])
+
+    return Keyboard(
+        [
+            ["Старое д/з", "Новое д/з"],
+            ["Все д/з"],
+            [kb[i+j].datetime().strftime("%d.%m.%Y") for j in range(2)]
+            for i in range(0, len(kb)-1, 2)
+        ]
+    )
 
 # Homework command
-def _cmd_homework(_tb, _message, _args):
+def _cmd_homework(_tb, _message, args):
     now = datetime.datetime.now().timestamp()
-    hw_list = database.get_hw_since(now - 60 * 60 * 24 * 7)
+    hw_list, _ = args["date"]
 
     if len(hw_list) == 0:
         return ("Пока домашний заданий нет", None)
@@ -357,6 +399,20 @@ def _cmd_homework(_tb, _message, _args):
 
     return res_message, None
 
+def _gen_cmd_homework():
+    return {
+        CMD: "Домашнее задание 📚",
+        HELP: "Показывает домашнее задание",
+        ARGS: {
+            "date": {
+                KB: gen_date_menu_hw(),
+                MESSAGE: "Выберите временной промежуток",
+                PARSER: _parse_date_hw,
+            },
+        },
+        FUNC: _cmd_homework,
+    }
+
 
 def format_hw(hw):
     """Formats homework statement"""
@@ -369,14 +425,6 @@ def format_hw(hw):
     return f"<code>📚 {subject}</code>: {text}"
 
 
-CMD_HOMEWORK = {
-    CMD: "Домашнее задание 📚",
-    HELP: "Показывает домашнее задание",
-    ARGS: {},
-    FUNC: _cmd_homework,
-}
-
-
 def _build_interface(cmds):
     return {item[CMD]: item for item in cmds}
 
@@ -387,7 +435,7 @@ def _interface(_tb, chatid):
             [
                 CMD_CALENDAR,
                 _gen_cmd_add_event(),
-                CMD_HOMEWORK,
+                _gen_cmd_homework(),
                 _gen_cmd_add_homework(),
                 CMD_LESSONS_SCHEDULE,
                 CMD_FOOD_CANTEEN_SCHEDULE,
@@ -399,7 +447,7 @@ def _interface(_tb, chatid):
         return _build_interface(
             [
                 CMD_CALENDAR,
-                CMD_HOMEWORK,
+                _gen_cmd_homework(),
                 CMD_LESSONS_SCHEDULE,
                 CMD_FOOD_CANTEEN_SCHEDULE,
                 CMD_START,
