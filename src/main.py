@@ -328,9 +328,11 @@ def _gen_cmd_add_homework():
         FUNC: _cmd_add_homework,
     }
 
+
 def _parse_date_hw(message):
+    now = datetime.datetime.now().timestamp()
     if message.text == "Старое д/з":
-        return database.get_hw_period(now - 60*60*24*7, now), None
+        return database.get_hw_period(now - 60 * 60 * 24 * 7, now), None
     elif message.text == "Новое д/з":
         return database.get_hw_since(now - 60 * 60 * 24), None
     elif message.text == "Все д/з":
@@ -347,12 +349,14 @@ def _parse_date_hw(message):
         logger.warn(f"Handled: {err}")
         return None, "Пожалуйста выберите один из вариантов. Не надо вводить свой."
 
+
 def gen_date_menu_hw():
+    now = datetime.datetime.now().timestamp()
     hw_list = database.get_hw_since(now - 60 * 60 * 24 * 7)
     ts = set()
     for hw in hw_list:
         ts.add(hw[TIMESTAMP])
-    ts = list(ts)
+    ts = [datetime.datetime.fromtimestamp(t).strftime("%d.%m.%Y") for t in ts]
     ts.sort()
     kb = []
 
@@ -362,14 +366,8 @@ def gen_date_menu_hw():
     if len(ts) % 2 != 0:
         kb.append([ts[-1]])
 
-    return Keyboard(
-        [
-            ["Старое д/з", "Новое д/з"],
-            ["Все д/з"],
-            [kb[i+j].datetime().strftime("%d.%m.%Y") for j in range(2)]
-            for i in range(0, len(kb)-1, 2)
-        ]
-    )
+    return Keyboard([["Все д/з"], ["Старое д/з", "Новое д/з"], *kb])
+
 
 # Homework command
 def _cmd_homework(_tb, _message, args):
@@ -398,6 +396,7 @@ def _cmd_homework(_tb, _message, args):
         res_message += f"<code><b>📌 {datestring}</b></code>\n{local_message}\n\n"
 
     return res_message, None
+
 
 def _gen_cmd_homework():
     return {
