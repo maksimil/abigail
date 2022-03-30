@@ -93,7 +93,7 @@ def get_user_list():
 # Operations with events
 @dataclass
 class Event:
-    """Represents an object in event"""
+    """Represents an object in db.event"""
 
     text: str
     date: datetime.datetime
@@ -117,30 +117,24 @@ def get_event_date(mfilter):
 
 
 # Operations with homework
-SUBJECT = "subject"
-TIMESTAMP = "timestamp"
-TEXT = "text"
+@dataclass
+class Homework:
+    """Represents an object in db.homework"""
+
+    subject: str
+    text: str
+    date: datetime.datetime
 
 
-def add_hw(subject: str, timestamp: int, text: str):
+def add_hw(hw: Homework):
     """Adds homework"""
-    homework.insert_one({SUBJECT: subject, TIMESTAMP: timestamp, TEXT: text})
+    homework.insert_one(asdict(hw))
 
 
-def get_hw_since(start: int):
-    """Get homework since"""
-    return list(homework.find({TIMESTAMP: {"$gte": start}}))
-
-
-def get_hw_date(date: int):
-    """Get homework by date"""
-    date = date - date % (24 * 60 * 60)
-    return list(homework.find({TIMESTAMP: date}))
-
-
-def get_hw_period(start: int, finish: int):
-    """Get hw in period [start;finish)"""
-    return list(homework.find({TIMESTAMP: {"$gte": start, "$lt": finish}}))
+def get_hw_date(mfilter):
+    """Gets homeworks filtered by date"""
+    data = homework.find({"date": mfilter}, NOID_PROJECT)
+    return [Homework(**e) for e in data]
 
 
 # Operations with global values

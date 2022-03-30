@@ -6,7 +6,7 @@ from dataclasses import dataclass, asdict
 from bot import ARGS, FUNC, KB, MESSAGE, PARSER, HIDDEN, Keyboard
 import bot
 import database
-from database import Event, TIMESTAMP, TEXT, SUBJECT
+from database import Event, Homework
 import log
 
 # Logger initialization
@@ -301,10 +301,7 @@ def _cmd_add_homework(_tb, _message, args):
     subject, _ = args["subject"]
     date, _ = args["date"]
     text, _ = args["text"]
-    database.add_hw(subject, date.timestamp(), text)
-    # tb.send_all(
-    #     database.get_user_list(), f'{date.strftime("%d.%m")} - {subject}: {text}'
-    # )
+    database.add_hw(Homework(subject=subject, text=text, date=date))
     return "Задание добавлено 📚", None
 
 
@@ -333,14 +330,26 @@ def _gen_cmd_add_homework():
     }
 
 
+HW_BTN_OLD = "Старое д/з"
+HW_BTN_NEW = "Новое д/з"
+HW_BTN_ALL = "Все д/з"
+
+
 def _parse_date_hw(message):
-    now = datetime.datetime.now().timestamp()
-    if message.text == "Старое д/з":
-        return database.get_hw_period(now - 60 * 60 * 24 * 7, now), None
-    elif message.text == "Новое д/з":
-        return database.get_hw_since(now - 60 * 60 * 24), None
-    elif message.text == "Все д/з":
-        return database.get_hw_since(now - 60 * 60 * 24 * 7), None
+    now = datetime.datetime.now()
+    daydelta = datetime.timedelta(days=1)
+    if message.text == HW_BTN_OLD:
+        return (
+            database.get_hw_date({"$gte": now - daydelta * 7, "$lte": now}),
+            None,
+        )
+
+    elif message.text == HW_BTN_NEW:
+        return database.get_hw_date({"$gte": now - daydelta * 7}), None
+
+    elif message.text == HW_BTN_ALL:
+        return database.get_hw_date({"$gte": now - daydelta * 7}), None
+
     try:
         text = message.text
         day, month, year = re.findall("^(.*)\\.(.*)\\.(.*)$", text)[0]
@@ -355,13 +364,16 @@ def _parse_date_hw(message):
 
 
 def gen_date_menu_hw():
-    now = datetime.datetime.now().timestamp()
-    hw_list = database.get_hw_since(now - 60 * 60 * 24 * 7)
+    now = datetime.datetime.now()
+    hw_list = database.get_hw_date({"$gte": now - datetime.timedelta(days=1)})
+
     ts = set()
     for hw in hw_list:
-        ts.add(hw[TIMESTAMP])
-    ts = [datetime.datetime.fromtimestamp(t).strftime("%d.%m.%Y") for t in ts]
+        ts.add(hw.date)
+
+    ts = list(ts)
     ts.sort()
+    ts = [t.strftime("%d.%m.%Y") for t in ts]
     kb = []
 
     for i in range(len(ts) // 2):
@@ -370,12 +382,12 @@ def gen_date_menu_hw():
     if len(ts) % 2 != 0:
         kb.append([ts[-1]])
 
-    return Keyboard([["Все д/з"], ["Старое д/з", "Новое д/з"], *kb])
+    return Keyboard([[HW_BTN_ALL], [HW_BTN_OLD, HW_BTN_NEW], *kb])
 
 
 # Homework command
 def _cmd_homework(_tb, _message, args):
-    now = datetime.datetime.now().timestamp()
+    now = datetime.datetime.now()
     hw_list, _ = args["date"]
 
     if len(hw_list) == 0:
@@ -383,9 +395,9 @@ def _cmd_homework(_tb, _message, args):
 
     hw_map = {}
     for hw in hw_list:
-        if hw_map.get(hw[TIMESTAMP]) is None:
-            hw_map[hw[TIMESTAMP]] = []
-        hw_map[hw[TIMESTAMP]].append(hw)
+        if hw_map.get(hw.date) is None:
+            hw_map[hw.date] = []
+        hw_map[hw.date].append(hw)
 
     res_message = ""
     times_list = list(hw_map.keys())
@@ -393,10 +405,10 @@ def _cmd_homework(_tb, _message, args):
 
     for time in times_list:
         hws = hw_map[time]
-        hws.sort(key=lambda hw: hw[SUBJECT])
+        hws.sort(key=lambda hw: hw.subject)
 
         local_message = "\n".join([format_hw(hw) for hw in hws])
-        datestring = datetime.datetime.fromtimestamp(time).strftime("%d.%m (%a)")
+        datestring = time.strftime("%d.%m (%a)")
         res_message += f"<code><b>📌 {datestring}</b></code>\n{local_message}\n\n"
 
     return res_message, None
@@ -419,13 +431,12 @@ def _gen_cmd_homework():
 
 def format_hw(hw):
     """Formats homework statement"""
-    text = hw[TEXT]
-    subject = hw[SUBJECT]
+    text = hw.text
 
     if len(text.splitlines()) > 1:
         text = "".join(["\n" + line for line in text.splitlines()])
 
-    return f"<code>📚 {subject}</code>: {text}"
+    return f"<code>📚 {hw.subject}</code>: {text}"
 
 
 def _build_interface(cmds):

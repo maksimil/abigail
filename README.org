@@ -21,7 +21,7 @@ python ./scripts/restart-mongod.py
 
 Запуск БД
 #+BEGIN_SRC bash
-mongod --dbpath ./db --auth
+sh ./scripts/mongod
 #+END_SRC
 
 Запуск бота
@@ -49,4 +49,19 @@ sh ./scripts/docker-down
 Прсмотр логов бота
 #+BEGIN_SRC bash
 sh ./scripts/docker-logs
+#+END_SRC
+
+* Тестирование
+** С ~docker~
+#+BEGIN_SRC bash
+sh ./scripts/docker-up
+#+END_SRC
+
+** Без ~docker~
+#+BEGIN_SRC bash
+# process 1
+sh ./scripts/mongod
+
+# process 2
+sh ./src/main.sh
 #+END_SRC
