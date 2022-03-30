@@ -8,8 +8,6 @@ from typing import Optional
 
 logger = log.Logger(["DATABASE", log.FGREEN])
 
-INITIAL_VALUES = {}
-
 
 def init_db():
     """Initializes the connection to database"""
@@ -138,11 +136,15 @@ def get_hw_date(mfilter):
 
 
 # Operations with global values
+INITIAL_VALUES = {}
+
+
 def get_value(name):
     """Gets global value `name`"""
     vs = values.find_one({})
     if vs.get(name) is None:
-        logger.error("value {name} not found")
+        logger.error("value {name} not found in {vs}")
+        return None
     else:
         return vs[name]
 
