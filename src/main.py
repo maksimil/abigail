@@ -2,10 +2,11 @@
 import os
 import re
 import datetime
+from dataclasses import dataclass, asdict
 from bot import ARGS, FUNC, KB, MESSAGE, PARSER, HIDDEN, Keyboard
 import bot
 import database
-from database import TIMESTAMP, TEXT, SUBJECT
+from database import Event, TIMESTAMP, TEXT, SUBJECT
 import log
 
 # Logger initialization
@@ -187,10 +188,11 @@ CMD_FOOD_CANTEEN_SCHEDULE = {
     FUNC: _cmd_food_сanteen_schedule,
 }
 
+
 # Calendar command
 def _cmd_calendar(_tb, _message, _args):
-    now = datetime.datetime.now().timestamp()
-    event_list = database.get_events_since(now - 60 * 60 * 24)
+    now = datetime.datetime.now()
+    event_list = database.get_event_date({"$gte": now - datetime.timedelta(days=1)})
 
     if len(event_list) == 0:
         return (
@@ -200,9 +202,9 @@ def _cmd_calendar(_tb, _message, _args):
 
     events_map = {}
     for event in event_list:
-        if events_map.get(event[TIMESTAMP]) is None:
-            events_map[event[TIMESTAMP]] = []
-        events_map[event[TIMESTAMP]].append(event[TEXT])
+        if events_map.get(event.date) is None:
+            events_map[event.date] = []
+        events_map[event.date].append(event.text)
 
     res_message = ""
     times_list = list(events_map.keys())
@@ -215,7 +217,7 @@ def _cmd_calendar(_tb, _message, _args):
                 for (order, event) in enumerate(events_map[time], 1)
             ]
         )
-        datestring = datetime.datetime.fromtimestamp(time).strftime("%d.%m (%a)")
+        datestring = time.strftime("%d.%m (%a)")
         res_message += f"<code><b>📌 {datestring}</b></code>\n{local_message}\n"
 
     return res_message, None
@@ -233,7 +235,9 @@ CMD_CALENDAR = {
 def _cmd_add_event(tb, _message, args):
     date, _ = args["date"]
     text, _ = args["text"]
-    database.add_event(text, date.timestamp())
+    event = Event(date=date, text=text)
+    logger.info(asdict(event))
+    database.add_event(event)
     tb.send_all(database.get_user_list(), f'🗓 {date.strftime("%d.%m")} - {text}')
     return "Календарь обновлён 🗓", None
 
@@ -248,7 +252,7 @@ def _parse_date(message):
         if date < datetime.datetime.now() - datetime.timedelta(days=1):
             return None, "Дата слишком старая"
 
-        return datetime.datetime(int(year), int(month), int(day)), None
+        return date, None
 
     except Exception as err:
         logger.warn(f"Handled: {err}")

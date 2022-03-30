@@ -3,6 +3,8 @@ import os
 import pymongo
 import log
 import datetime
+from dataclasses import dataclass, asdict
+from typing import Optional
 
 logger = log.Logger(["DATABASE", log.FGREEN])
 
@@ -89,22 +91,35 @@ def get_user_list():
 
 
 # Operations with events
-TEXT = "text"
-TIMESTAMP = "timestamp"
+@dataclass
+class Event:
+    """Represents an object in event"""
+
+    text: str
+    date: datetime.datetime
 
 
-def add_event(text: str, day: int):
+NOID_PROJECT = {"_id": False}
+
+
+def add_event(event: Event):
     """Adds event"""
-    events.insert_one({TEXT: text, TIMESTAMP: day})
+    events.insert_one(asdict(event))
 
 
-def get_events_since(start: int):
-    """Gets every event since `start` timestamp"""
-    return list(events.find({TIMESTAMP: {"$gte": start}}))
+def get_event_date(mfilter):
+    """
+    Gets events filtered by date
+    https://www.mongodb.com/docs/realm/rules/filters
+    """
+    data = events.find({"date": mfilter}, NOID_PROJECT)
+    return [Event(**e) for e in data]
 
 
 # Operations with homework
 SUBJECT = "subject"
+TIMESTAMP = "timestamp"
+TEXT = "text"
 
 
 def add_hw(subject: str, timestamp: int, text: str):
