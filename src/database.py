@@ -4,7 +4,6 @@ import pymongo
 import log
 import datetime
 from dataclasses import dataclass, asdict
-from typing import Optional
 
 logger = log.Logger(["DATABASE", log.FGREEN])
 
@@ -139,7 +138,7 @@ def get_hw_date(mfilter):
 INITIAL_VALUES = {}
 
 
-def get_value(name):
+def get_value(name: str):
     """Gets global value `name`"""
     vs = values.find_one({})
     if vs.get(name) is None:
