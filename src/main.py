@@ -2,7 +2,6 @@
 import os
 import re
 import datetime
-from dataclasses import dataclass, asdict
 from bot import ARGS, FUNC, KB, MESSAGE, PARSER, HIDDEN, Keyboard
 import bot
 import database
@@ -125,7 +124,6 @@ def _cmd_add_event(tb, _message, args):
     date, _ = args["date"]
     text, _ = args["text"]
     event = Event(date=date, text=text)
-    logger.info(asdict(event))
     database.add_event(event)
     tb.send_all(database.get_user_list(), f'🗓 {date.strftime("%d.%m")} - {text}')
     return "Календарь обновлён 🗓", None

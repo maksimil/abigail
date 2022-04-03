@@ -1,9 +1,9 @@
 """Module for database access"""
 import os
-import pymongo
-import log
 import datetime
 from dataclasses import dataclass, asdict
+import pymongo
+import log
 
 logger = log.Logger(["DATABASE", log.FGREEN])
 
@@ -141,11 +141,12 @@ INITIAL_VALUES = {}
 def get_value(name: str):
     """Gets global value `name`"""
     vs = values.find_one({})
+
     if vs.get(name) is None:
         logger.error("value {name} not found in {vs}")
         return None
-    else:
-        return vs[name]
+
+    return vs[name]
 
 
 def update_value(name, value):
