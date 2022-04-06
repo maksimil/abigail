@@ -1,7 +1,6 @@
 """
 Bot functions
 """
-import time
 import traceback
 import telebot
 from telebot import types
@@ -128,7 +127,6 @@ class Bot:
         for i in ids:
             try:
                 self.send_message_kb(i, text, None)
-                # time.sleep(0.1)
             except Exception as err:
                 logger.warn(f"Error on user {i}:\n{str(err)}")
 
@@ -147,7 +145,6 @@ class Bot:
         for i in ids:
             try:
                 self.copy_message(i, message)
-                # time.sleep(0.1)
             except Exception as err:
                 logger.warn(f"Error on user {i}:\n{str(err)}")
 

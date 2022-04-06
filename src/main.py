@@ -5,125 +5,14 @@ import datetime
 from bot import ARGS, FUNC, KB, MESSAGE, PARSER, HIDDEN, Keyboard
 import bot
 import database
-from database import TIMESTAMP, TEXT, SUBJECT
+from database import Event, Homework
 import log
+import config
 
 # Logger initialization
 logger = log.Logger(["MAINBOT", log.FYELLOW])
 
 # message configs
-GREETING_MESSAGE = """Привет👋
-
-Через меня вы будетe получать следующую полезную информацию:
-📝Домашние задания
-🕘Общие мероприятия (школьные концерты, сбор макулатуры и т.д.)
-📆События в классе (даты экзаменов, контрольных, экскурсий и т.п)
-
-Всё будет приходить прямо в этот чат
-
-👇Нажмите кнопку \"Календарь\", чтобы увидеть, что запланировано на ближайшее будущее"
-"""
-
-LESSONS_SCHEDULE = """
-<code><b>📌 Понедельник</b></code>
-<code>1)</code> Химия
-<code>2)</code> Алгебра
-<code>3)</code> Английский язык (у своих учителей)
-<code>4)</code> Информатика
-<code>5)</code> Обществознание
-<code>6)</code> Физкультура
-
-<code><b>📌 Вторник</b></code>
-<code>1)</code> Английский язык
-    (у группы Браниновой - Лукина,
-    у группы Лукиной - Рудь, 
-    у группы Рудь - Бранинова)
-<code>2)</code> Геометрия
-<code>3)</code> Русский
-<code>4)</code> Электив по русскому/математике
-<code>5)</code> История
-<code>6)</code> ОБЖ
-
-<code><b>📌 Среда</b></code>
-<code>1)</code> Английский язык
-    (у группы Браниновой - Рудь,
-    у группы Рудь - Лукина,
-    у группы Лукиной - Бранинова)
-<code>2)</code> Электив по математике/русскому
-<code>3)</code> Литература
-<code>4)</code> Физика
-<code>5)</code> История
-<code>6)</code> Физкультура
-
-<code><b>📌 Четверг</b></code>
-<code>1)</code> Астрономия
-<code>2)</code> Английский язык (у своих учителей)
-<code>3)</code> Английский язык
-    (у группы Рудь - Бранинова,
-    у группы Браниновой - Лукина,
-    у группы Лукины - Рудь)
-<code>4)</code> Русский
-<code>5)</code> Литература
-<code>6)</code> География
-
-<code><b>🍻 Пятница</b></code>
-<code>1)</code> Английский язык (у группы Браниновой - Рудь,
-    у группы Рудь - Лукина,
-    у группы Лукиной - Бранинова)
-<code>2)</code> Биология
-<code>3)</code> История
-<code>4)</code> Обществознание
-<code>5)</code> Алгебра
-<code>6)</code> Геометрия
-
-<code><b>🍻 Суббота</b></code>
-<code>1)</code> Литература
-<code>2)</code> Физика
-<code>3)</code> Электив по биологии/обществознанию
-<code>4)</code> Физкультура
-<code>5)</code> Алгебра
-<code>6)</code> Электив по истории/литературе
-"""
-
-FOOD_CANTEEN_SCHEDULE = """
-<code><b>1 неделя</b></code>
-<code>🍑 Понедельник</code>: борщ без фасоли, плов, капуста, яблоко
-<code>🍑 Вторник</code>: гороховый суп, пюре вкусное с рыбной котлетой, морковь, йогурт
-<code>🍑 Среда</code>: овощной суп со свежей капустой, куриная котлета с масленными макаронами, винегрет, яблоко, оранжевый сок
-<code>🍑 Четверг</code>: рассольник, ленивые голубцы, помидоры с луком, апельсин, компот
-<code>🍻 Пятница</code>: суп с лапшой, курицей и картошкой, рыба гадкая с картошкой, огурцы маринованные с луком, йогурт, морс
-<code>🍻 Суббота</code>: щи с перловкой, гречка с печенкой, свекла, яблоко, сок
-
-<code><b>2 неделя</b></code>
-<code>🍑 Понедельник</code>: овощной суп со свежей капустой, рис с куриной котлетой в сыре, оливье без соуса школьный, сок яблочный, яблоко
-<code>🍑 Вторник</code>: рыбный суп, рагу, салат из капусты яблока и морковки, йогурт
-<code>🍑 Среда</code>: борщ с фасолью, гречка с котлетой вкусной, булка с творогом, полпомидора
-<code>🍑 Четверг</code>: рассольник, рыба в яйце с пюре, свекла, йогурт
-<code>🍻 Пятница</code>: похлебка крестьянская, курица в сметанном соусе, морковка, яблоко
-<code>🍻 Суббота</code>: суп с картошкой, тушеные овощи с куриной котлетой, маринованный огурец, яблочный сок, яблоко
-"""
-
-SUBJECTS_MENU = Keyboard(
-    [
-        ["Русский", "Литература"],
-        ["Алгебра", "Геометрия"],
-        ["Профильная математика"],
-        ["Базовая математика"],
-        ["Информатика (Марина Гарриевна)"],
-        ["Информатика (Попова)"],
-        ["История", "Биология"],
-        ["Электив по истории"],
-        ["Обществознание", "ОБЖ"],
-        ["Электив по биологии"],
-        ["Химия", "Физика"],
-        ["Астрономия", "География"],
-        ["Английский язык (группа Браниновой)"],
-        ["Английский язык (группа Лукиной)"],
-        ["Английский язык (группа Рудь)"],
-        ["Физкультура"],
-    ]
-)
-
 HELP = "help"
 CMD = "cmd"
 
@@ -133,7 +22,7 @@ def _cmd_start(_tb, message, _args):
     chatid = message.chat.id
     # adding user to the database
     database.add_user(chatid, False)
-    return GREETING_MESSAGE, None
+    return config.GREETING_MESSAGE, None
 
 
 CMD_START = {
@@ -164,7 +53,7 @@ CMD_HELP = {
 
 # Schedule lesson command
 def _cmd_lessons_schedule(_tb, _message, _args):
-    return (LESSONS_SCHEDULE, None)
+    return config.LESSONS_SCHEDULE, None
 
 
 CMD_LESSONS_SCHEDULE = {
@@ -177,7 +66,7 @@ CMD_LESSONS_SCHEDULE = {
 
 # Schedule food_canteen command
 def _cmd_food_сanteen_schedule(_tb, _message, _args):
-    return (FOOD_CANTEEN_SCHEDULE, None)
+    return config.FOOD_CANTEEN_SCHEDULE, None
 
 
 CMD_FOOD_CANTEEN_SCHEDULE = {
@@ -187,10 +76,11 @@ CMD_FOOD_CANTEEN_SCHEDULE = {
     FUNC: _cmd_food_сanteen_schedule,
 }
 
+
 # Calendar command
 def _cmd_calendar(_tb, _message, _args):
-    now = datetime.datetime.now().timestamp()
-    event_list = database.get_events_since(now - 60 * 60 * 24)
+    now = datetime.datetime.now()
+    event_list = database.get_event_date({"$gte": now - datetime.timedelta(days=1)})
 
     if len(event_list) == 0:
         return (
@@ -200,9 +90,9 @@ def _cmd_calendar(_tb, _message, _args):
 
     events_map = {}
     for event in event_list:
-        if events_map.get(event[TIMESTAMP]) is None:
-            events_map[event[TIMESTAMP]] = []
-        events_map[event[TIMESTAMP]].append(event[TEXT])
+        if events_map.get(event.date) is None:
+            events_map[event.date] = []
+        events_map[event.date].append(event.text)
 
     res_message = ""
     times_list = list(events_map.keys())
@@ -215,7 +105,7 @@ def _cmd_calendar(_tb, _message, _args):
                 for (order, event) in enumerate(events_map[time], 1)
             ]
         )
-        datestring = datetime.datetime.fromtimestamp(time).strftime("%d.%m (%a)")
+        datestring = time.strftime("%d.%m (%a)")
         res_message += f"<code><b>📌 {datestring}</b></code>\n{local_message}\n"
 
     return res_message, None
@@ -233,7 +123,8 @@ CMD_CALENDAR = {
 def _cmd_add_event(tb, _message, args):
     date, _ = args["date"]
     text, _ = args["text"]
-    database.add_event(text, date.timestamp())
+    event = Event(date=date, text=text)
+    database.add_event(event)
     tb.send_all(database.get_user_list(), f'🗓 {date.strftime("%d.%m")} - {text}')
     return "Календарь обновлён 🗓", None
 
@@ -248,7 +139,7 @@ def _parse_date(message):
         if date < datetime.datetime.now() - datetime.timedelta(days=1):
             return None, "Дата слишком старая"
 
-        return datetime.datetime(int(year), int(month), int(day)), None
+        return date, None
 
     except Exception as err:
         logger.warn(f"Handled: {err}")
@@ -269,8 +160,8 @@ def gen_date_menu(cols, rows):
 
 def _parse_text(message):
     if message.text is None:
-        return (None, "Поле не может быть пустым")
-    return (message.text, None)
+        return None, "Поле не может быть пустым"
+    return message.text, None
 
 
 def _gen_cmd_add_event():
@@ -297,10 +188,7 @@ def _cmd_add_homework(_tb, _message, args):
     subject, _ = args["subject"]
     date, _ = args["date"]
     text, _ = args["text"]
-    database.add_hw(subject, date.timestamp(), text)
-    # tb.send_all(
-    #     database.get_user_list(), f'{date.strftime("%d.%m")} - {subject}: {text}'
-    # )
+    database.add_hw(Homework(subject=subject, text=text, date=date))
     return "Задание добавлено 📚", None
 
 
@@ -315,7 +203,7 @@ def _gen_cmd_add_homework():
                 PARSER: _parse_date,
             },
             "subject": {
-                KB: SUBJECTS_MENU,
+                KB: config.SUBJECTS_MENU,
                 MESSAGE: "Выберите предмет дз",
                 PARSER: _parse_text,
             },
@@ -329,21 +217,34 @@ def _gen_cmd_add_homework():
     }
 
 
+HW_BTN_OLD = "Старое д/з"
+HW_BTN_NEW = "Новое д/з"
+HW_BTN_ALL = "Все д/з"
+
+
 def _parse_date_hw(message):
-    now = datetime.datetime.now().timestamp()
-    if message.text == "Старое д/з":
-        return database.get_hw_period(now - 60 * 60 * 24 * 7, now), None
-    elif message.text == "Новое д/з":
-        return database.get_hw_since(now - 60 * 60 * 24), None
-    elif message.text == "Все д/з":
-        return database.get_hw_since(now - 60 * 60 * 24 * 7), None
+    now = datetime.datetime.now()
+    daydelta = datetime.timedelta(days=1)
+
+    if message.text == HW_BTN_OLD:
+        return (
+            database.get_hw_date({"$gte": now - daydelta * 7, "$lte": now}),
+            None,
+        )
+
+    elif message.text == HW_BTN_NEW:
+        return database.get_hw_date({"$gte": now - daydelta}), None
+
+    elif message.text == HW_BTN_ALL:
+        return database.get_hw_date({"$gte": now - daydelta * 7}), None
+
     try:
         text = message.text
         day, month, year = re.findall("^(.*)\\.(.*)\\.(.*)$", text)[0]
 
         date = datetime.datetime(int(year), int(month), int(day))
 
-        return database.get_hw_date(date.timestamp()), None
+        return database.get_hw_date(date), None
 
     except Exception as err:
         logger.warn(f"Handled: {err}")
@@ -351,13 +252,16 @@ def _parse_date_hw(message):
 
 
 def gen_date_menu_hw():
-    now = datetime.datetime.now().timestamp()
-    hw_list = database.get_hw_since(now - 60 * 60 * 24 * 7)
+    now = datetime.datetime.now()
+    hw_list = database.get_hw_date({"$gte": now - datetime.timedelta(days=7)})
+
     ts = set()
     for hw in hw_list:
-        ts.add(hw[TIMESTAMP])
-    ts = [datetime.datetime.fromtimestamp(t).strftime("%d.%m.%Y") for t in ts]
+        ts.add(hw.date)
+
+    ts = list(ts)
     ts.sort()
+    ts = [t.strftime("%d.%m.%Y") for t in ts]
     kb = []
 
     for i in range(len(ts) // 2):
@@ -366,22 +270,22 @@ def gen_date_menu_hw():
     if len(ts) % 2 != 0:
         kb.append([ts[-1]])
 
-    return Keyboard([["Все д/з"], ["Старое д/з", "Новое д/з"], *kb])
+    return Keyboard([[HW_BTN_ALL], [HW_BTN_OLD, HW_BTN_NEW], *kb])
 
 
 # Homework command
 def _cmd_homework(_tb, _message, args):
-    now = datetime.datetime.now().timestamp()
+    now = datetime.datetime.now()
     hw_list, _ = args["date"]
 
     if len(hw_list) == 0:
-        return ("Пока домашний заданий нет", None)
+        return "Пока домашний заданий нет", None
 
     hw_map = {}
     for hw in hw_list:
-        if hw_map.get(hw[TIMESTAMP]) is None:
-            hw_map[hw[TIMESTAMP]] = []
-        hw_map[hw[TIMESTAMP]].append(hw)
+        if hw_map.get(hw.date) is None:
+            hw_map[hw.date] = []
+        hw_map[hw.date].append(hw)
 
     res_message = ""
     times_list = list(hw_map.keys())
@@ -389,10 +293,10 @@ def _cmd_homework(_tb, _message, args):
 
     for time in times_list:
         hws = hw_map[time]
-        hws.sort(key=lambda hw: hw[SUBJECT])
+        hws.sort(key=lambda hw: hw.subject)
 
         local_message = "\n".join([format_hw(hw) for hw in hws])
-        datestring = datetime.datetime.fromtimestamp(time).strftime("%d.%m (%a)")
+        datestring = time.strftime("%d.%m (%a)")
         res_message += f"<code><b>📌 {datestring}</b></code>\n{local_message}\n\n"
 
     return res_message, None
@@ -415,13 +319,13 @@ def _gen_cmd_homework():
 
 def format_hw(hw):
     """Formats homework statement"""
-    text = hw[TEXT]
-    subject = hw[SUBJECT]
+    text = hw.text
+    lines = text.splitlines()
 
-    if len(text.splitlines()) > 1:
-        text = "".join(["\n" + line for line in text.splitlines()])
+    if len(lines) > 1:
+        text = "".join(["\n" + line for line in lines])
 
-    return f"<code>📚 {subject}</code>: {text}"
+    return f"<code>📚 {hw.subject}</code>: {text}"
 
 
 def _build_interface(cmds):
