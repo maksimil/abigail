@@ -244,7 +244,7 @@ def _parse_date_hw(message):
 
         date = datetime.datetime(int(year), int(month), int(day))
 
-        return database.get_hw_date(date), None
+        return database.get_hw_date({"$gte": date, "$lt": date + daydelta}), None
 
     except Exception as err:
         logger.warn(f"Handled: {err}")
